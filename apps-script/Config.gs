@@ -91,6 +91,25 @@ function getApiToken_() {
   return getScriptProperty_('API_TOKEN');
 }
 
+/**
+ * Returns the spreadsheet backing this project.
+ * Standalone scripts (created at script.google.com) must set SPREADSHEET_ID
+ * in Script properties. Sheet-bound scripts can omit it.
+ */
+function getSpreadsheet_() {
+  var id = getScriptProperty_('SPREADSHEET_ID', true);
+  if (id) return SpreadsheetApp.openById(id);
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  if (!ss) {
+    throw new Error(
+      'No spreadsheet linked. In Project settings → Script properties, set SPREADSHEET_ID ' +
+      'to your Google Sheet ID (from the sheet URL), or bind this project via ' +
+      'Extensions → Apps Script inside the spreadsheet.'
+    );
+  }
+  return ss;
+}
+
 function getOrgDomain_() {
   return getScriptProperty_('ORG_DOMAIN', true) || DEFAULT_ORG_DOMAIN;
 }
@@ -125,3 +144,4 @@ function getEventManagerEmail_() {
   if (em) return em;
   return Session.getEffectiveUser().getEmail();
 }
+

@@ -1,18 +1,23 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
+import { gasProxyPlugin } from './vite-gas-proxy';
 
 // On GitHub Pages the app lives at /EventOS/
 // Override via VITE_BASE_URL env var (e.g. "/" for a custom domain).
-const base = process.env.VITE_BASE_URL ?? '/';
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), '');
+  const base = env.VITE_BASE_URL ?? '/';
+  const useProxy = env.VITE_USE_PROXY === 'true';
 
-export default defineConfig({
+  return {
   base,
   build: {
     chunkSizeWarningLimit: 3000,
     reportCompressedSize: false,
   },
   plugins: [
+    ...(useProxy ? [gasProxyPlugin(env.VITE_API_URL, env.VITE_API_TOKEN)] : []),
     react(),
     // Skip PWA generation in CI — workbox can fail with non-root base paths
     ...(process.env.CI === 'true'
@@ -40,4 +45,5 @@ export default defineConfig({
           }),
         ]),
   ],
+  };
 });

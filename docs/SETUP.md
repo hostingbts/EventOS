@@ -19,14 +19,16 @@ Import sample structure from `docs/sheet-headers.csv`.
 
 ## 2. Apps Script
 
-1. In the spreadsheet: **Extensions → Apps Script**.
+1. In the spreadsheet: **Extensions → Apps Script** (recommended — script stays bound to the sheet).
+   - If you already created a standalone project at script.google.com, set **`SPREADSHEET_ID`** in Script properties instead.
 2. Delete default `Code.gs` content.
-3. Create one file per file in this repo’s `apps-script/` folder (or paste all into one project).
+3. Create one file per file in this repo’s `apps-script/` folder (or run `clasp push` from `apps-script/`).
 4. **Project settings → Script properties**:
 
 | Property | Value |
 |----------|--------|
 | `API_TOKEN` | Long random string (e.g. `openssl rand -hex 32`) |
+| `SPREADSHEET_ID` | **Required** if the script is standalone (created at script.google.com). The Sheet ID from the URL: `https://docs.google.com/spreadsheets/d/SHEET_ID/edit` |
 | `GEMINI_API_KEY` | Optional — [Google AI Studio](https://aistudio.google.com/apikey) |
 | `EVENT_MANAGER_EMAIL` | Email for weekly digest |
 | `SHEET_NAME` | Optional — default `Events` |

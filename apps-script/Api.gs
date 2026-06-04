@@ -13,6 +13,12 @@ function parseBody_(e) {
   return {};
 }
 
+function getActorEmail_(body, e) {
+  if (body && body.actorEmail) return body.actorEmail;
+  if (e && e.parameter && e.parameter.actorEmail) return e.parameter.actorEmail;
+  return '';
+}
+
 function handleRequest_(e, method) {
   try {
     var body = method === 'POST' ? parseBody_(e) : {};
@@ -62,6 +68,12 @@ function handleRequest_(e, method) {
     if (action === 'eventCreate' && method === 'POST') {
       body.createdBy = actorEmail || body.createdBy || '';
       return jsonResponse_(createEvent_(body));
+    }
+
+    if (action === 'eventDelete' && method === 'POST') {
+      return jsonResponse_(
+        deleteEvent_(body.rowId, body.code, actorEmail),
+      );
     }
 
     if (action === 'workspace') {
@@ -222,8 +234,13 @@ function handleRequest_(e, method) {
 
     // ——— Accounts ———
     if (action === 'authList') {
-      requireAdmin_(actorEmail);
       return jsonResponse_({ accounts: listAccounts_() });
+    }
+
+    if (action === 'authCheckEmail') {
+      var checkEmail = (e.parameter && e.parameter.email) || body.email || '';
+      var found = findAccountRow_(checkEmail);
+      return jsonResponse_({ exists: !!found });
     }
 
     if (action === 'authRegister' && method === 'POST') {

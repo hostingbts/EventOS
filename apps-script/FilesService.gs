@@ -59,19 +59,7 @@ function getOrCreateEventFolder_(eventCode, location) {
   return eventFolder;
 }
 
-/**
- * Creates the full Drive folder structure for a new event.
- * Returns the URL of the top-level event folder.
- */
-function createEventDriveFolders_(eventCode, location) {
-  try {
-    var folder = getOrCreateEventFolder_(eventCode, location);
-    return folder.getUrl();
-  } catch (e) {
-    Logger.log('createEventDriveFolders_ error: ' + e);
-    return '';
-  }
-}
+// createEventDriveFolders_ is defined in SheetService.gs (used when creating events)
 
 function getTaskFolder_(eventCode, taskId) {
   var root = getDriveRootFolder_();

@@ -38,7 +38,7 @@ function getTasksSheet_() {
 }
 
 function getOrCreateSheet_(name, headers) {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSpreadsheet_();
   var sheet = ss.getSheetByName(name);
   if (!sheet) {
     sheet = ss.insertSheet(name);
@@ -203,4 +203,30 @@ function updateTask_(taskId, updates, actorEmail) {
 
   logActivity_('task_updated', task.eventCode, taskId, updates.status || task.title, actorEmail || '');
   return findTask_(taskId);
+}
+
+/** Remove all task rows for an event (bottom-up to keep row indices stable). */
+function deleteTasksForEvent_(eventCode) {
+  if (!eventCode) return;
+  var sheet = getTasksSheet_();
+  var map = getHeaderMap_(sheet);
+  var lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return;
+
+  var codeCol = colIndex_(map, TASK_COLS.EVENT_CODE);
+  if (!codeCol) return;
+
+  var data = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
+  var rowsToDelete = [];
+  for (var i = 0; i < data.length; i++) {
+    if (String(data[i][codeCol - 1] || '') === eventCode) {
+      rowsToDelete.push(i + 2);
+    }
+  }
+  rowsToDelete.sort(function (a, b) {
+    return b - a;
+  });
+  rowsToDelete.forEach(function (rowNum) {
+    sheet.deleteRow(rowNum);
+  });
 }

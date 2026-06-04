@@ -2,8 +2,26 @@ import type { Event, EventsResponse, EventUpdates } from '../types';
 import {
   appendExtraEvent,
   getExtraEvents,
+  purgeEventFromMockState,
+  removeExtraEventByRowId,
   updateExtraEvent,
 } from './mockStore';
+
+const DELETED_ROW_IDS_KEY = 'deleted_mock_event_row_ids';
+
+function getDeletedRowIds(): Set<string> {
+  try {
+    const raw = localStorage.getItem(DELETED_ROW_IDS_KEY);
+    if (raw) return new Set(JSON.parse(raw) as string[]);
+  } catch { /* ignore */ }
+  return new Set();
+}
+
+function markRowIdDeleted(rowId: string): void {
+  const ids = getDeletedRowIds();
+  ids.add(rowId);
+  localStorage.setItem(DELETED_ROW_IDS_KEY, JSON.stringify([...ids]));
+}
 
 const seedEvents: Event[] = [
   {
@@ -149,7 +167,8 @@ const seedEvents: Event[] = [
 ];
 
 export function getAllMockEvents(): Event[] {
-  return [...seedEvents, ...getExtraEvents()];
+  const deleted = getDeletedRowIds();
+  return [...seedEvents, ...getExtraEvents()].filter((e) => !deleted.has(e.rowId));
 }
 
 export const mockEventsResponse = {
@@ -174,7 +193,7 @@ export function findMockEvent(opts: {
       if (opts.rowId && e.rowId === opts.rowId) return true;
       if (opts.code && e.code === opts.code) return true;
       return false;
-    }) || null
+    }) ?? null
   );
 }
 
@@ -225,4 +244,19 @@ export function createMockEvent(payload: Partial<Event> & { code: string }): Eve
 
   appendExtraEvent(event);
   return event;
+}
+
+export async function deleteMockEvent(rowId: string, code: string): Promise<void> {
+  const ev = findMockEvent({ rowId, code });
+  if (!ev) throw new Error('Event not found');
+
+  const removedExtra = removeExtraEventByRowId(rowId);
+  if (!removedExtra) markRowIdDeleted(rowId);
+
+  purgeEventFromMockState(ev.code);
+
+  const { deleteTransferList } = await import('../utils/transferListStore');
+  const { deleteEventDesign } = await import('../utils/designStore');
+  deleteTransferList(ev.code);
+  deleteEventDesign(ev.code);
 }

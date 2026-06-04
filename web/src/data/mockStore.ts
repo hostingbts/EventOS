@@ -232,6 +232,30 @@ export function updateExtraEvent(rowId: string, patch: Partial<Event>): Event | 
   return state.extraEvents[idx];
 }
 
+export function removeExtraEventByRowId(rowId: string): boolean {
+  const idx = state.extraEvents.findIndex((e) => e.rowId === rowId);
+  if (idx < 0) return false;
+  state.extraEvents.splice(idx, 1);
+  persist();
+  return true;
+}
+
+/** Remove all workspace data keyed by event code. */
+export function purgeEventFromMockState(eventCode: string): void {
+  delete state.tasksByEvent[eventCode];
+  delete state.commentsByEvent[eventCode];
+
+  const taskIds = new Set<string>();
+  for (const [taskId, files] of Object.entries(state.filesByTask)) {
+    if (files.some((f) => f.eventCode === eventCode)) taskIds.add(taskId);
+  }
+  for (const taskId of taskIds) delete state.filesByTask[taskId];
+
+  state.vendorLinks = state.vendorLinks.filter((l) => l.eventCode !== eventCode);
+  state.activity = state.activity.filter((a) => a.eventCode !== eventCode);
+  persist();
+}
+
 export function resetMockStore(): void {
   state.extraEvents = [];
   state.tasksByEvent = {};

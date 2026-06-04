@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { fetchDashboardHealth, fetchEvents } from '../api/client';
+import { deleteEvent, fetchDashboardHealth, fetchEvents } from '../api/client';
 import { useUser } from '../context/UserContext';
 import type { Event, EventHealth } from '../types';
 import { NewProjectModal } from '../components/NewProjectModal';
@@ -67,7 +67,8 @@ function groupByMonth(
 ): Array<{ month: string; events: Event[] }> {
   const map = new Map<string, { events: Event[]; anchor: Date }>();
 
-  for (const ev of events) {
+  const list = Array.isArray(events) ? events : [];
+  for (const ev of list) {
     const label = monthLabel(ev.startDate, ev.monthGroup);
     const anchor = parseDate(ev.startDate) ?? new Date(0);
     if (!map.has(label)) map.set(label, { events: [], anchor });
@@ -118,11 +119,22 @@ interface RowProps {
   health?: EventHealth | null;
   isCompleted: boolean;
   isAdmin: boolean;
+  deleting: boolean;
   onArchive: (code: string) => void;
   onUnarchive: (code: string) => void;
+  onDelete: (ev: Event) => void;
 }
 
-function EventRow({ ev, health, isCompleted: done, isAdmin, onArchive, onUnarchive }: RowProps) {
+function EventRow({
+  ev,
+  health,
+  isCompleted: done,
+  isAdmin,
+  deleting,
+  onArchive,
+  onUnarchive,
+  onDelete,
+}: RowProps) {
   const tier = health?.tier ?? null;
   const pending = health ? health.totalTasks - health.doneTasks : null;
   const days = daysUntilStart(ev);
@@ -221,19 +233,33 @@ function EventRow({ ev, health, isCompleted: done, isAdmin, onArchive, onUnarchi
         <span className="dl-arrow" aria-hidden="true">→</span>
       </Link>
 
-      {/* Admin archive toggle */}
       {isAdmin && (
-        <button
-          type="button"
-          className={`dl-archive-btn${done ? ' dl-archive-btn--restore' : ''}`}
-          title={done ? 'Restore to active' : 'Archive event'}
-          onClick={(e) => {
-            e.preventDefault();
-            done ? onUnarchive(ev.code) : onArchive(ev.code);
-          }}
-        >
-          {done ? '↩' : '⊙'}
-        </button>
+        <div className="dl-admin-actions">
+          <button
+            type="button"
+            className={`dl-archive-btn${done ? ' dl-archive-btn--restore' : ''}`}
+            title={done ? 'Restore to active' : 'Archive event'}
+            disabled={deleting}
+            onClick={(e) => {
+              e.preventDefault();
+              done ? onUnarchive(ev.code) : onArchive(ev.code);
+            }}
+          >
+            {done ? '↩' : '⊙'}
+          </button>
+          <button
+            type="button"
+            className="dl-delete-btn"
+            title="Delete event permanently"
+            disabled={deleting}
+            onClick={(e) => {
+              e.preventDefault();
+              onDelete(ev);
+            }}
+          >
+            {deleting ? '…' : '✕'}
+          </button>
+        </div>
       )}
     </div>
   );
@@ -247,11 +273,23 @@ interface MonthSectionProps {
   healthByCode: Record<string, EventHealth>;
   isCompleted: boolean;
   isAdmin: boolean;
+  deletingId: string | null;
   onArchive: (code: string) => void;
   onUnarchive: (code: string) => void;
+  onDelete: (ev: Event) => void;
 }
 
-function MonthSection({ month, events, healthByCode, isCompleted, isAdmin, onArchive, onUnarchive }: MonthSectionProps) {
+function MonthSection({
+  month,
+  events,
+  healthByCode,
+  isCompleted,
+  isAdmin,
+  deletingId,
+  onArchive,
+  onUnarchive,
+  onDelete,
+}: MonthSectionProps) {
   return (
     <div className="dashboard__month-group">
       <h2 className="dashboard__month-heading">
@@ -274,8 +312,10 @@ function MonthSection({ month, events, healthByCode, isCompleted, isAdmin, onArc
             health={healthByCode[ev.code]}
             isCompleted={isCompleted}
             isAdmin={isAdmin}
+            deleting={deletingId === ev.rowId}
             onArchive={onArchive}
             onUnarchive={onUnarchive}
+            onDelete={onDelete}
           />
         ))}
       </div>
@@ -296,6 +336,7 @@ export function DashboardPage() {
   const [showNewProject, setShowNewProject] = useState(false);
   const [healthByCode, setHealthByCode] = useState<Record<string, EventHealth>>({});
   const [completedOpen, setCompletedOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const [archivedCodes, setArchivedCodes] = useState<Set<string>>(() => {
     try {
@@ -309,7 +350,7 @@ export function DashboardPage() {
     setError(null);
     try {
       const [data, health] = await Promise.all([fetchEvents(), fetchDashboardHealth()]);
-      setEvents(data.events);
+      setEvents(data.events ?? []);
       setHealthByCode(health);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load');
@@ -336,11 +377,39 @@ export function DashboardPage() {
     });
   }
 
+  async function handleDelete(ev: Event) {
+    if (!user?.email) return;
+    const label = ev.code + (ev.location ? ` — ${ev.location}` : '');
+    if (
+      !confirm(
+        `Delete "${label}" permanently?\n\nThis removes the event and its tasks from the dashboard. This cannot be undone.`,
+      )
+    ) {
+      return;
+    }
+    setDeletingId(ev.rowId);
+    try {
+      await deleteEvent(ev.rowId, ev.code, user.email);
+      setEvents((prev) => prev.filter((e) => e.rowId !== ev.rowId));
+      setHealthByCode((prev) => {
+        const next = { ...prev };
+        delete next[ev.code];
+        return next;
+      });
+      unarchive(ev.code);
+    } catch (e) {
+      alert(e instanceof Error ? e.message : 'Failed to delete event');
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   // Split events into active / completed
   const { activeEvents, completedEvents } = useMemo(() => {
     const active: Event[] = [];
     const completed: Event[] = [];
-    for (const ev of events) {
+    const list = Array.isArray(events) ? events : [];
+    for (const ev of list) {
       (isCompleted(ev, archivedCodes) ? completed : active).push(ev);
     }
     return { activeEvents: active, completedEvents: completed };
@@ -442,7 +511,7 @@ export function DashboardPage() {
       {loading && <p className="dashboard__msg">Loading events…</p>}
       {error && <p className="dashboard__msg dashboard__msg--err">{error}</p>}
 
-      {!loading && events.length === 0 && (
+      {!loading && !error && (Array.isArray(events) ? events : []).length === 0 && (
         <div className="dashboard__empty">
           <p>No events yet.</p>
           {user && (
@@ -462,8 +531,10 @@ export function DashboardPage() {
           healthByCode={healthByCode}
           isCompleted={false}
           isAdmin={isAdmin}
+          deletingId={deletingId}
           onArchive={archive}
           onUnarchive={unarchive}
+          onDelete={handleDelete}
         />
       ))}
 
@@ -496,8 +567,10 @@ export function DashboardPage() {
                   healthByCode={healthByCode}
                   isCompleted
                   isAdmin={isAdmin}
+                  deletingId={deletingId}
                   onArchive={archive}
                   onUnarchive={unarchive}
+                  onDelete={handleDelete}
                 />
               ))}
             </div>

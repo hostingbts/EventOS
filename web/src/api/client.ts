@@ -44,10 +44,30 @@ function buildUrl(action: string, params?: Record<string, string>) {
   return url.toString();
 }
 
+function throwIfApiError(data: unknown): void {
+  if (data && typeof data === 'object' && 'error' in data) {
+    const msg = (data as { error?: string }).error;
+    if (msg) throw new Error(msg);
+  }
+}
+
 async function parseJson<T>(res: Response): Promise<T> {
-  const data = await res.json();
-  if (!res.ok) throw new Error((data as { error?: string }).error || res.statusText);
-  return data as T;
+  const text = await res.text();
+  try {
+    const data = JSON.parse(text) as T & { error?: string };
+    if (!res.ok) throw new Error(data.error || res.statusText);
+    throwIfApiError(data);
+    return data;
+  } catch (e) {
+    if (!(e instanceof SyntaxError)) throw e;
+    const snippet = text.replace(/\s+/g, ' ').slice(0, 120);
+    if (text.includes('doGet') || text.includes('doPost')) {
+      throw new Error(
+        'Apps Script web app is not deployed correctly. In the script editor: Deploy → Manage deployments → EventOS API → New version → Deploy.',
+      );
+    }
+    throw new Error(`API returned non-JSON (${res.status}). ${snippet}`);
+  }
 }
 
 async function post<T>(action: string, body: Record<string, unknown>): Promise<T> {
@@ -67,7 +87,11 @@ export async function fetchEvents(): Promise<EventsResponse> {
     const { mockEventsResponse } = await import('../data/mockEvents');
     return mockEventsResponse;
   }
-  return parseJson(await fetch(buildUrl('list')));
+  const data = await parseJson<EventsResponse>(await fetch(buildUrl('list')));
+  return {
+    months: Array.isArray(data.months) ? data.months : [],
+    events: Array.isArray(data.events) ? data.events : [],
+  };
 }
 
 /**
@@ -143,6 +167,19 @@ export async function updateEvent(rowId: string, code: string, updates: EventUpd
     return updateMockEvent(rowId, updates);
   }
   return post('update', { rowId, code, updates });
+}
+
+export async function deleteEvent(
+  rowId: string,
+  code: string,
+  actorEmail: string,
+): Promise<void> {
+  if (useMockData()) {
+    const { deleteMockEvent } = await import('../data/mockEvents');
+    await deleteMockEvent(rowId, code);
+    return;
+  }
+  await post('eventDelete', { rowId, code, actorEmail });
 }
 
 export async function fetchWorkspace(eventCode: string, eventRowId: string): Promise<WorkspaceData> {
@@ -490,8 +527,15 @@ export async function apiAuthChangePassword(email: string, newHash: string): Pro
 }
 
 export async function apiAuthList(): Promise<AuthAccount[]> {
-  const res = await parseJson<{ accounts: AuthAccount[] }>(await fetch(buildUrl('authList')));
-  return res.accounts;
+  const res = await parseJson<{ accounts?: AuthAccount[] }>(await fetch(buildUrl('authList')));
+  return res.accounts ?? [];
+}
+
+export async function apiAuthCheckEmail(email: string): Promise<boolean> {
+  const res = await parseJson<{ exists: boolean }>(
+    await fetch(buildUrl('authCheckEmail', { email: email.toLowerCase().trim() })),
+  );
+  return res.exists;
 }
 
 // ——— Org members ———

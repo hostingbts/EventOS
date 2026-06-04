@@ -36,8 +36,4 @@ function requireAdmin_(email) {
   }
 }
 
-function getActorEmail_(body, e) {
-  if (body && body.actorEmail) return body.actorEmail;
-  if (e && e.parameter && e.parameter.actorEmail) return e.parameter.actorEmail;
-  return '';
-}
+// getActorEmail_ lives in Config.gs (shared by all services)

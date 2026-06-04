@@ -329,32 +329,55 @@
   background: #dcfce7;
 }
 
-/* Archive button (shown on hover of the wrap) */
-.dl-archive-btn {
+/* Admin row actions (archive + delete, shown on hover) */
+.dl-admin-actions {
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.dashboard__row-wrap:hover .dl-admin-actions {
+  opacity: 1;
+}
+
+.dl-archive-btn,
+.dl-delete-btn {
   flex-shrink: 0;
   width: 28px;
-  opacity: 0;
+  height: 28px;
   border: none;
   background: transparent;
   color: var(--muted-light);
   cursor: pointer;
   font-size: 0.85rem;
-  transition: opacity 0.15s, color 0.15s;
+  transition: color 0.15s, background 0.15s;
   display: flex;
   align-items: center;
   justify-content: center;
+  border-radius: var(--radius-sm);
 }
 
-.dashboard__row-wrap:hover .dl-archive-btn {
-  opacity: 1;
+.dl-archive-btn:disabled,
+.dl-delete-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
-.dl-archive-btn:hover {
+.dl-archive-btn:hover:not(:disabled) {
   color: var(--primary);
+  background: var(--primary-soft);
 }
 
-.dl-archive-btn--restore:hover {
+.dl-archive-btn--restore:hover:not(:disabled) {
   color: #047857;
+  background: #ecfdf5;
+}
+
+.dl-delete-btn:hover:not(:disabled) {
+  color: #b91c1c;
+  background: #fef2f2;
 }
 
 /* Date sub-badges */
@@ -672,7 +695,7 @@
   .dl-location__place  { font-size: 0.75rem; color: var(--muted); font-weight: 400; }
   .dl-location__dates  { font-size: 0.7rem; }
   .dl-owner, .dl-progress, .dl-tasks { display: none; }
-  .dl-archive-btn      { display: none; }
+  .dl-admin-actions      { display: none; }
 }
 
 .dashboard__msg {

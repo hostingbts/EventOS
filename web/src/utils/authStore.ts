@@ -177,7 +177,8 @@ async function initRealMode_(): Promise<void> {
   // Fetch accounts from GAS → populate cache
   let remoteAccounts: AuthAccount[] = [];
   try {
-    remoteAccounts = await apiAuthList();
+    const listed = await apiAuthList();
+    remoteAccounts = Array.isArray(listed) ? listed : [];
     setCachedAccounts(remoteAccounts);
   } catch (err) {
     console.warn('[authStore] Failed to fetch accounts from server:', err);

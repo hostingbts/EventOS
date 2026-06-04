@@ -13,7 +13,7 @@ var AUTH_ACCOUNT_COLS_   = ['id', 'name', 'email', 'passwordHash', 'createdAt'];
 // ── Sheet access ──────────────────────────────────────────────────────────
 
 function getAuthAccountsSheet_() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var ss = getSpreadsheet_();
   var sheet = ss.getSheetByName(AUTH_ACCOUNTS_SHEET_);
   if (!sheet) {
     sheet = ss.insertSheet(AUTH_ACCOUNTS_SHEET_);

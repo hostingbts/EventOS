@@ -1,4 +1,5 @@
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { AppErrorBoundary } from './components/AppErrorBoundary';
 import { UserProvider } from './context/UserContext';
 import { AppLayout } from './layout/AppLayout';
 import { JoinTeamModal } from './components/JoinTeamModal';
@@ -22,6 +23,7 @@ const basename = import.meta.env.BASE_URL ?? '/';
 
 export default function App() {
   return (
+    <AppErrorBoundary>
     <UserProvider>
       <BrowserRouter basename={basename}>
         <JoinTeamModal />
@@ -46,5 +48,6 @@ export default function App() {
         </Routes>
       </BrowserRouter>
     </UserProvider>
+    </AppErrorBoundary>
   );
 }

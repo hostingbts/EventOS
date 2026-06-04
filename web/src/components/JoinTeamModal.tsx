@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useUser } from '../context/UserContext';
+import { apiAuthCheckEmail, useMockData } from '../api/client';
 import {
   createAuthAccount,
   getAccountByEmail,
@@ -46,16 +47,32 @@ export function JoinTeamModal() {
       return;
     }
     setLoading(true);
-    // Small async tick so the button shows loading
-    await new Promise((r) => setTimeout(r, 120));
-    const account = getAccountByEmail(trimmed);
-    setLoading(false);
-    if (account) {
+    try {
+      let exists = !!getAccountByEmail(trimmed);
+      if (!exists && !useMockData()) {
+        try {
+          exists = await apiAuthCheckEmail(trimmed);
+        } catch (err) {
+          // Older GAS deployment without authCheckEmail — still allow sign-in attempt
+          const msg = err instanceof Error ? err.message : '';
+          if (msg.includes('Unknown action')) {
+            exists = true;
+          } else {
+            throw err;
+          }
+        }
+      }
       setEmail(trimmed);
-      setStep('password');
-    } else {
-      setEmail(trimmed);
-      setStep('not_found');
+      setStep(exists ? 'password' : 'not_found');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : '';
+      setError(
+        msg
+          ? msg
+          : 'Could not reach the server. Check your connection and try again.',
+      );
+    } finally {
+      setLoading(false);
     }
   }
 

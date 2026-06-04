@@ -13,7 +13,7 @@ var ORG_MEMBER_COLS_    = ['id', 'name', 'email', 'role', 'status', 'createdAt',
 // ── Sheet access ──────────────────────────────────────────────────────────
 
 function getOrgMembersSheet_() {
-  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var ss    = getSpreadsheet_();
   var sheet = ss.getSheetByName(ORG_MEMBERS_SHEET_);
   if (!sheet) {
     sheet = ss.insertSheet(ORG_MEMBERS_SHEET_);
@@ -24,7 +24,7 @@ function getOrgMembersSheet_() {
 }
 
 function getRoleCapabilitiesSheet_() {
-  var ss    = SpreadsheetApp.getActiveSpreadsheet();
+  var ss    = getSpreadsheet_();
   var sheet = ss.getSheetByName(ROLE_CAPS_SHEET_);
   if (!sheet) {
     sheet = ss.insertSheet(ROLE_CAPS_SHEET_);

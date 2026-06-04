@@ -12,25 +12,7 @@ function getActivitySheet_() {
   return getOrCreateSheet_(CONFIG.ACTIVITY_SHEET, Object.values(ACTIVITY_COLS));
 }
 
-function logActivity_(type, eventCode, taskId, summary, actor) {
-  var sheet = getActivitySheet_();
-  var map = getHeaderMap_(sheet);
-  var row = sheet.getLastRow() + 1;
-  var now = new Date().toISOString();
-
-  function setCol(name, val) {
-    var c = colIndex_(map, name);
-    if (c) sheet.getRange(row, c).setValue(val);
-  }
-
-  setCol(ACTIVITY_COLS.ACTIVITY_ID, Utilities.getUuid());
-  setCol(ACTIVITY_COLS.TYPE, type);
-  setCol(ACTIVITY_COLS.EVENT_CODE, eventCode || '');
-  setCol(ACTIVITY_COLS.TASK_ID, taskId || '');
-  setCol(ACTIVITY_COLS.SUMMARY, summary || '');
-  setCol(ACTIVITY_COLS.ACTOR, actor || '');
-  setCol(ACTIVITY_COLS.CREATED_AT, now);
-}
+// logActivity_ is defined in SheetService.gs
 
 function listActivity_(eventCode, limit) {
   var sheet = getActivitySheet_();
