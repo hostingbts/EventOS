@@ -1,0 +1,157 @@
+.app {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem 1rem 2rem;
+}
+
+.app__header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  background: linear-gradient(135deg, var(--purple), color-mix(in srgb, var(--purple) 70%, var(--stone)));
+  color: white;
+  padding: 1.25rem 1.5rem;
+  border-radius: var(--radius);
+  margin-bottom: 1rem;
+}
+
+.app__header h1 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.app__subtitle {
+  margin: 0.25rem 0 0;
+  opacity: 0.9;
+  font-size: 0.9rem;
+}
+
+.pill {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+}
+
+.pill--ok {
+  background: var(--green);
+  color: #2d4200;
+}
+
+.pill--mock {
+  background: var(--pink);
+  color: #5c4a48;
+}
+
+.pill--warn {
+  background: #fff3cd;
+  color: #664d03;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.toolbar__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  flex: 1;
+}
+
+.toolbar__btn {
+  border: 1px solid color-mix(in srgb, var(--stone) 30%, white);
+  background: var(--surface);
+  color: var(--stone);
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.toolbar__btn--active {
+  background: var(--green);
+  border-color: var(--green);
+  color: #2d4200;
+  font-weight: 600;
+}
+
+.toolbar__month {
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--stone) 30%, white);
+  padding: 0.4rem 0.6rem;
+}
+
+.toolbar__refresh {
+  background: var(--purple);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.45rem 0.85rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.toolbar__refresh:disabled {
+  opacity: 0.6;
+}
+
+.app__main {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 900px) {
+  .app__main {
+    grid-template-columns: 1fr 380px;
+    align-items: start;
+  }
+}
+
+.month-group__title {
+  font-size: 0.95rem;
+  color: var(--purple);
+  margin: 0 0 0.65rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 2px solid var(--pink);
+}
+
+.month-group {
+  margin-bottom: 1.25rem;
+}
+
+.month-group__cards {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.app__message {
+  color: var(--stone);
+  text-align: center;
+}
+
+.app__message--error {
+  color: #a33;
+  background: #fee;
+  padding: 0.75rem;
+  border-radius: 8px;
+}
+
+.app__footer {
+  margin-top: 2rem;
+  text-align: center;
+  font-size: 0.8rem;
+  color: var(--stone);
+  padding: 1rem;
+  background: var(--pink);
+  border-radius: var(--radius);
+}

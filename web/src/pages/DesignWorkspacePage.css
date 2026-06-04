@@ -1,0 +1,552 @@
+/* ─── Page shell ───────────────────────────────────────────────────── */
+.dw-page {
+  padding: 1.5rem 2rem 3rem;
+  max-width: 1200px;
+}
+
+.dw-loading {
+  padding: 3rem;
+  color: var(--text-secondary, #64748b);
+}
+
+/* ─── Breadcrumb ───────────────────────────────────────────────────── */
+.dw-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.88rem;
+  color: var(--text-secondary, #64748b);
+  margin-bottom: 1.4rem;
+}
+.dw-breadcrumb a {
+  color: var(--primary, #0d9488);
+  text-decoration: none;
+  font-weight: 500;
+}
+.dw-breadcrumb a:hover { text-decoration: underline; }
+.dw-breadcrumb__event {
+  font-weight: 500;
+  color: var(--text-primary, #0f172a);
+}
+
+/* ─── Tabs ──────────────────────────────────────────────────────────── */
+.dw-tabs {
+  display: flex;
+  gap: 0.3rem;
+  border-bottom: 2px solid var(--border, #e2e8f0);
+  margin-bottom: 1.8rem;
+}
+.dw-tab {
+  background: none;
+  border: none;
+  padding: 0.6rem 1.1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text-secondary, #64748b);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  border-radius: 6px 6px 0 0;
+  transition: color 0.12s, border-color 0.12s;
+  white-space: nowrap;
+}
+.dw-tab:hover { color: var(--text-primary, #0f172a); }
+.dw-tab.active {
+  color: var(--primary, #0d9488);
+  border-bottom-color: var(--primary, #0d9488);
+  font-weight: 600;
+}
+
+/* ─── Panel ─────────────────────────────────────────────────────────── */
+.dw-panel { }
+
+/* ─── Setup two-column layout ───────────────────────────────────────── */
+.dw-panel__row--2col {
+  display: grid;
+  grid-template-columns: 1fr 420px;
+  gap: 2.5rem;
+  align-items: start;
+}
+
+/* ─── Fields ────────────────────────────────────────────────────────── */
+.dw-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+.dw-fields h2 {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-secondary, #475569);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0.8rem 0 0;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+}
+.dw-fields label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  font-size: 0.87rem;
+  font-weight: 500;
+  color: var(--text-primary, #1e293b);
+}
+.dw-fields input,
+.dw-fields select,
+.dw-fields textarea {
+  padding: 0.48rem 0.8rem;
+  border: 1.5px solid var(--border, #e2e8f0);
+  border-radius: 7px;
+  font-size: 0.9rem;
+  background: var(--surface-1, #fff);
+  transition: border-color 0.12s;
+}
+.dw-fields input:focus,
+.dw-fields select:focus,
+.dw-fields textarea:focus {
+  outline: none;
+  border-color: var(--primary, #0d9488);
+}
+.dw-row2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+.dw-color-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.dw-color-row input[type="color"] {
+  width: 44px;
+  height: 36px;
+  padding: 2px;
+  border-radius: 6px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.dw-logo-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.dw-logo-thumb {
+  height: 36px;
+  max-width: 90px;
+  object-fit: contain;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 4px;
+  background: #f8fafc;
+  padding: 2px;
+}
+
+/* ─── Locked brand colour row ───────────────────────────────────────── */
+.dw-brand-locked {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  background: var(--surface-2, #f8fafc);
+  border: 1.5px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  padding: 0.6rem 0.9rem;
+  font-size: 0.88rem;
+  color: var(--text-secondary, #475569);
+}
+.dw-brand-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: 1px solid rgba(0,0,0,0.12);
+  flex-shrink: 0;
+}
+.dw-brand-locked__badge {
+  margin-left: auto;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #fff;
+  background: #203864;
+  border-radius: 20px;
+  padding: 0.15rem 0.55rem;
+}
+
+/* ─── Multi-logo manager ────────────────────────────────────────────── */
+.dw-logos-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.dw-logos-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: flex-end;
+}
+.dw-logo-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  background: var(--surface-2, #f8fafc);
+  border: 1.5px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  padding: 6px;
+}
+.dw-logo-item__img {
+  height: 44px;
+  max-width: 100px;
+  object-fit: contain;
+  border-radius: 4px;
+}
+.dw-logo-item__actions {
+  display: flex;
+  gap: 3px;
+}
+.dw-logo-item__actions button {
+  background: none;
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 4px;
+  font-size: 0.75rem;
+  padding: 1px 5px;
+  cursor: pointer;
+  color: var(--text-secondary, #475569);
+  transition: background 0.1s;
+}
+.dw-logo-item__actions button:hover { background: var(--border, #e2e8f0); }
+.dw-logo-item__actions button:last-child { color: var(--color-danger, #ef4444); }
+.dw-logo-item__actions button:last-child:hover { background: #fef2f2; }
+
+.dw-logo-add {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  width: 80px;
+  height: 72px;
+  border: 2px dashed var(--border, #cbd5e1);
+  border-radius: 8px;
+  cursor: pointer;
+  color: var(--text-tertiary, #94a3b8);
+  transition: border-color 0.13s, background 0.13s;
+}
+.dw-logo-add:hover {
+  border-color: var(--primary, #203864);
+  background: color-mix(in srgb, #203864 5%, transparent);
+  color: #203864;
+}
+.dw-logo-add span { font-size: 1.4rem; line-height: 1; }
+.dw-logo-add small { font-size: 0.7rem; text-align: center; line-height: 1.2; }
+
+/* ─── Signers ───────────────────────────────────────────────────────── */
+.dw-signers {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.dw-signer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--surface-2, #f8fafc);
+  border: 1px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  padding: 0.5rem 0.75rem;
+}
+.dw-signer__name { font-weight: 600; font-size: 0.88rem; flex: 1; }
+.dw-signer__title { font-size: 0.83rem; color: var(--text-secondary, #64748b); flex: 1; }
+.dw-signer input { flex: 1; }
+.dw-fields__footer {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border, #e2e8f0);
+}
+
+/* ─── Preview panel ─────────────────────────────────────────────────── */
+.dw-preview-panel {
+  position: sticky;
+  top: 1rem;
+}
+.dw-preview-panel h2 {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-secondary, #475569);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 1rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+}
+.dw-preview-section {
+  margin-bottom: 1.5rem;
+}
+.dw-preview-section h3 {
+  font-size: 0.83rem;
+  font-weight: 600;
+  color: var(--text-secondary, #64748b);
+  margin: 0 0 0.6rem;
+}
+.dw-preview-section h3 small {
+  font-weight: 400;
+  color: var(--text-tertiary, #94a3b8);
+}
+
+/* ─── Attendees tab ─────────────────────────────────────────────────── */
+.dw-attendees-top {
+  max-width: 720px;
+}
+.dw-paste-box {
+  margin-bottom: 2rem;
+}
+.dw-paste-box h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.4rem;
+}
+.dw-paste-box textarea {
+  width: 100%;
+  font-family: monospace;
+  font-size: 0.87rem;
+  padding: 0.7rem;
+  border: 1.5px solid var(--border, #e2e8f0);
+  border-radius: 8px;
+  background: var(--surface-1, #fff);
+  resize: vertical;
+  box-sizing: border-box;
+}
+.dw-paste-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 0.6rem;
+}
+
+.dw-attendee-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  max-width: 880px;
+}
+.dw-attendee-list__header {
+  display: grid;
+  grid-template-columns: 32px 1fr 1fr 1fr 36px;
+  gap: 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary, #94a3b8);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0 0.5rem;
+}
+.dw-attendee-row {
+  display: grid;
+  grid-template-columns: 32px 1fr 1fr 1fr 36px;
+  gap: 0.5rem;
+  align-items: center;
+}
+.dw-attendee-row input {
+  padding: 0.38rem 0.6rem;
+  border: 1.5px solid var(--border, #e2e8f0);
+  border-radius: 6px;
+  font-size: 0.87rem;
+  background: var(--surface-1, #fff);
+  width: 100%;
+  box-sizing: border-box;
+}
+.dw-attendee-row input:focus {
+  outline: none;
+  border-color: var(--primary, #0d9488);
+}
+.dw-attendee-row__num {
+  text-align: center;
+  font-size: 0.78rem;
+  color: var(--text-tertiary, #94a3b8);
+}
+.dw-attendee-list__add { margin-top: 0.25rem; }
+
+/* ─── Generate tab ──────────────────────────────────────────────────── */
+.dw-gen-layout {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 2.5rem;
+  align-items: start;
+}
+.dw-gen-options h2 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.4rem;
+}
+.dw-gen-checkboxes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 1rem 0 1.5rem;
+}
+.dw-gen-check {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  gap: 0 0.6rem;
+  align-items: center;
+  background: var(--surface-1, #fff);
+  border: 1.5px solid var(--border, #e2e8f0);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  transition: border-color 0.12s;
+}
+.dw-gen-check:has(input:checked) {
+  border-color: var(--primary, #0d9488);
+  background: color-mix(in srgb, var(--primary, #0d9488) 4%, white);
+}
+.dw-gen-check input { grid-row: 1; }
+.dw-gen-check span { font-weight: 600; font-size: 0.92rem; }
+.dw-gen-check small { grid-column: 2; font-size: 0.8rem; color: var(--text-secondary, #64748b); }
+
+.dw-gen-sub {
+  margin-left: 1rem;
+  padding: 0.6rem 0.9rem;
+  background: var(--surface-2, #f8fafc);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.dw-sheet-toggle {
+  display: flex;
+  gap: 0.4rem;
+}
+.dw-sheet-btn {
+  border: 1.5px solid var(--border, #e2e8f0);
+  background: var(--surface-1, #fff);
+  border-radius: 6px;
+  padding: 0.3rem 0.9rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.dw-sheet-btn.active {
+  background: var(--primary, #0d9488);
+  border-color: var(--primary, #0d9488);
+  color: #fff;
+}
+
+.dw-gen-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+.dw-gen-preview {
+  position: sticky;
+  top: 1rem;
+}
+.dw-gen-preview h2 {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-secondary, #475569);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 1rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--border, #e2e8f0);
+}
+
+/* ─── Danger zone ───────────────────────────────────────────────────── */
+.dw-danger {
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--border, #fee2e2);
+}
+
+/* ─── Shared helpers ────────────────────────────────────────────────── */
+.dw-hint {
+  font-size: 0.82rem;
+  color: var(--text-tertiary, #94a3b8);
+  margin: 0;
+}
+.dw-error {
+  font-size: 0.83rem;
+  color: var(--color-danger, #ef4444);
+  margin: 0;
+}
+
+/* ─── Buttons ───────────────────────────────────────────────────────── */
+.dw-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.92rem;
+  padding: 0.55rem 1.1rem;
+  text-decoration: none;
+  transition: background 0.13s, opacity 0.13s;
+  white-space: nowrap;
+}
+.dw-btn--primary {
+  background: var(--primary, #0d9488);
+  color: #fff;
+}
+.dw-btn--primary:hover:not(:disabled) { background: var(--primary-dark, #0f766e); }
+.dw-btn--primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.dw-btn--secondary {
+  background: var(--surface-2, #f1f5f9);
+  color: var(--text-primary, #1e293b);
+  border: 1px solid var(--border, #e2e8f0);
+}
+.dw-btn--secondary:hover { background: var(--border, #e2e8f0); }
+.dw-btn--ghost {
+  background: transparent;
+  color: var(--primary, #0d9488);
+  border: 1px solid var(--primary, #0d9488);
+}
+.dw-btn--ghost:hover { background: color-mix(in srgb, var(--primary, #0d9488) 8%, transparent); }
+.dw-btn--danger {
+  background: transparent;
+  color: var(--color-danger, #ef4444);
+  border: 1px solid transparent;
+}
+.dw-btn--danger:hover { background: #fef2f2; border-color: #fca5a5; }
+.dw-btn--sm {
+  font-size: 0.79rem;
+  padding: 0.3rem 0.65rem;
+  border-radius: 6px;
+}
+.dw-btn--lg {
+  font-size: 1rem;
+  padding: 0.7rem 1.5rem;
+}
+
+/* ─── Responsive ────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .dw-panel__row--2col,
+  .dw-gen-layout {
+    grid-template-columns: 1fr;
+  }
+  .dw-preview-panel,
+  .dw-gen-preview {
+    position: static;
+  }
+}
+@media (max-width: 600px) {
+  .dw-page { padding: 1rem; }
+  .dw-attendee-list__header,
+  .dw-attendee-row {
+    grid-template-columns: 28px 1fr 36px;
+  }
+  .dw-attendee-list__header span:nth-child(3),
+  .dw-attendee-list__header span:nth-child(4),
+  .dw-attendee-row input:nth-child(3),
+  .dw-attendee-row input:nth-child(4) {
+    display: none;
+  }
+}

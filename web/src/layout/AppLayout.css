@@ -1,0 +1,443 @@
+/* ─── Layout shell ─────────────────────────────────────────────────────────── */
+
+.layout {
+  display: flex;
+  min-height: 100dvh;
+}
+
+/* ─── Sidebar ───────────────────────────────────────────────────────────────── */
+
+/*
+ * Collapsed width  →  64 px   (icon only)
+ * Expanded width   →  240 px  (icon + label)
+ * Expansion is driven purely by CSS :hover on the aside — no JS needed.
+ */
+
+:root {
+  --sidebar-w-collapsed: 64px;
+  --sidebar-w-expanded:  240px;
+  --sidebar-transition:  width 0.28s cubic-bezier(0.4, 0, 0.2, 1),
+                         opacity 0.22s ease;
+}
+
+.layout__sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  z-index: 100;
+  width: var(--sidebar-w-collapsed);
+  background: var(--sidebar);
+  border-right: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;                /* clip text while collapsing  */
+  transition: var(--sidebar-transition);
+  /* Subtle box-shadow to lift sidebar above content */
+  box-shadow: 2px 0 24px rgba(0, 0, 0, 0.18);
+}
+
+.layout__sidebar:hover {
+  width: var(--sidebar-w-expanded);
+}
+
+/* push main content so it's never hidden under the sidebar */
+.layout__main {
+  margin-left: var(--sidebar-w-collapsed);
+  flex: 1;
+  padding: 1.75rem 2rem 2.5rem;
+  overflow-x: hidden;
+  background: var(--bg-subtle);
+  min-height: 100dvh;
+  transition: margin-left 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ─── Brand / logo ──────────────────────────────────────────────────────────── */
+
+.layout__brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.1rem 0.5rem;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+/* Small square icon — visible when sidebar is collapsed */
+.layout__logo-img--icon {
+  width: 38px;
+  height: 38px;
+  object-fit: cover;
+  object-position: center 18%;   /* crop to show the circular icon mark */
+  border-radius: 10px;
+  background: #fff;
+  flex-shrink: 0;
+  display: block;
+  transition: opacity 0.18s;
+}
+
+/* Full wordmark logo — hidden when collapsed, visible on hover */
+.layout__logo-img--full {
+  display: none;
+  max-width: 140px;
+  max-height: 62px;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 10px;
+  padding: 4px 8px;
+  opacity: 0;
+  transition: opacity 0.18s ease 0.08s;
+  pointer-events: none;
+}
+
+.layout__sidebar:hover .layout__logo-img--icon {
+  display: none;
+}
+
+.layout__sidebar:hover .layout__logo-img--full {
+  display: block;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ─── Nav ───────────────────────────────────────────────────────────────────── */
+
+.layout__nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.5rem 0;
+  flex: 1;
+}
+
+.layout__link {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  text-decoration: none;
+  color: var(--sidebar-text);
+  border-radius: var(--radius);
+  margin: 0 8px;
+  padding: 0;
+  height: 44px;
+  position: relative;
+  transition: background 0.15s, color 0.15s;
+  overflow: hidden;               /* keep label from wrapping */
+  white-space: nowrap;
+}
+
+.layout__link:hover {
+  background: var(--sidebar-elevated);
+  color: var(--sidebar-text-active);
+}
+
+.layout__link.active {
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 2px 12px var(--primary-glow);
+}
+
+.layout__link-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* keep the icon fixed at the left edge; its width matches collapsed sidebar */
+  width: calc(var(--sidebar-w-collapsed) - 16px);  /* 48px = 64 - 2×8 margin */
+  flex-shrink: 0;
+  transition: color 0.15s;
+}
+
+.layout__link-label {
+  font-size: 0.88rem;
+  font-weight: 500;
+  opacity: 0;
+  transition: opacity 0.18s ease 0.08s;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.layout__sidebar:hover .layout__link-label {
+  opacity: 1;
+}
+
+/* Tooltip in collapsed mode */
+.layout__link[title]:not(:focus-visible)::after {
+  content: attr(title);
+  position: absolute;
+  left: calc(var(--sidebar-w-collapsed) + 10px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: #1e293b;
+  color: var(--sidebar-text-active);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.3rem 0.65rem;
+  border-radius: var(--radius-sm);
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.12s ease;
+  box-shadow: var(--shadow);
+  z-index: 200;
+}
+
+/* only show tooltip when sidebar is collapsed */
+.layout__sidebar:not(:hover) .layout__link:hover::after {
+  opacity: 1;
+}
+
+/* ─── User section ──────────────────────────────────────────────────────────── */
+
+.layout__user {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  flex-shrink: 0;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.layout__avatar {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--accent) 0%, #818cf8 100%);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+  /* keep avatar centred in collapsed mode */
+  margin-left: calc((var(--sidebar-w-collapsed) - 36px) / 2 - 8px);
+  transition: margin-left 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.layout__sidebar:hover .layout__avatar {
+  margin-left: 0;
+}
+
+.layout__user-info {
+  flex: 1;
+  min-width: 0;
+  opacity: 0;
+  transition: opacity 0.18s ease 0.08s;
+}
+
+.layout__sidebar:hover .layout__user-info {
+  opacity: 1;
+}
+
+.layout__user-info strong {
+  color: var(--sidebar-text-active);
+  font-size: 0.83rem;
+  font-weight: 600;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.layout__user-info small {
+  display: block;
+  color: var(--sidebar-text);
+  font-size: 0.68rem;
+  margin-top: 0.1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.layout__user-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  margin-top: 0.2rem;
+}
+
+.layout__role-badge {
+  display: inline-block;
+  font-size: 0.58rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  line-height: 1.4;
+}
+
+.layout__demo {
+  display: inline-block;
+  font-size: 0.58rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  background: var(--sidebar-elevated);
+  color: var(--warning-soft);
+  padding: 0.12rem 0.35rem;
+  border-radius: 4px;
+}
+
+/* ── Admin Panel shortcut button ─────────────────────────────────────────── */
+
+.layout__admin-btn {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  width: 100%;
+  padding: 0.5rem 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--sidebar-text);
+  border-top: 1px solid rgba(255,255,255,0.06);
+  margin-bottom: 0;
+  transition: color 0.15s, background 0.15s;
+  text-align: left;
+  flex-shrink: 0;
+}
+
+.layout__admin-btn:hover {
+  color: var(--sidebar-text-active);
+  background: var(--sidebar-elevated);
+}
+
+.layout__admin-btn-icon {
+  width: var(--sidebar-w-collapsed);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.layout__admin-btn-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.22s ease 0.08s;
+  overflow: hidden;
+}
+
+.layout__sidebar:hover .layout__admin-btn-label {
+  opacity: 1;
+}
+
+.layout__logout {
+  border: none;
+  background: transparent;
+  color: var(--sidebar-text);
+  cursor: pointer;
+  padding: 0.4rem;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  opacity: 0;
+  transition: background 0.15s, color 0.15s, opacity 0.18s ease 0.08s;
+}
+
+.layout__sidebar:hover .layout__logout {
+  opacity: 1;
+}
+
+.layout__logout:hover {
+  background: var(--sidebar-elevated);
+  color: var(--sidebar-text-active);
+}
+
+/* ─── Mobile: bottom tab bar ────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .layout {
+    flex-direction: column;
+  }
+
+  .layout__sidebar {
+    position: fixed;
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100% !important;   /* override hover expansion */
+    height: 60px;
+    flex-direction: row;
+    align-items: center;
+    border-right: none;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.2);
+    padding: 0 0.5rem;
+    overflow: visible;
+    z-index: 200;
+  }
+
+  .layout__brand,
+  .layout__user-info,
+  .layout__logout,
+  .layout__demo {
+    display: none;
+  }
+
+  .layout__nav {
+    flex-direction: row;
+    flex: 1;
+    justify-content: space-around;
+    padding: 0;
+    gap: 0;
+  }
+
+  .layout__link {
+    flex-direction: column;
+    gap: 0.2rem;
+    height: 56px;
+    margin: 0;
+    padding: 0.4rem 0.5rem 0.5rem;
+    border-radius: var(--radius);
+    justify-content: center;
+    align-items: center;
+    flex: 1;
+  }
+
+  .layout__link-icon {
+    width: auto;
+    height: 24px;
+    margin: 0;
+  }
+
+  .layout__link-label {
+    opacity: 1 !important;   /* always visible on mobile */
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-align: center;
+  }
+
+  /* No tooltips on mobile */
+  .layout__link::after {
+    display: none !important;
+  }
+
+  .layout__user {
+    border-top: none;
+    padding: 0;
+    flex-shrink: 0;
+  }
+
+  .layout__avatar {
+    margin-left: 0;
+    width: 32px;
+    height: 32px;
+    min-width: 32px;
+  }
+
+  .layout__main {
+    margin-left: 0;
+    margin-bottom: 60px;
+    padding: 1.25rem 1rem 2rem;
+  }
+}

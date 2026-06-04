@@ -1,0 +1,154 @@
+import { Link } from 'react-router-dom';
+import { useUser } from '../context/UserContext';
+import './GeneratorsPage.css';
+
+interface GeneratorCard {
+  title:       string;
+  description: string;
+  detail:      string[];
+  href:        string;
+  icon:        string;
+  color:       string;
+  bg:          string;
+  label:       string;
+}
+
+const GENERATORS: GeneratorCard[] = [
+  {
+    title: 'Transfer List Generator',
+    description:
+      'Build the airport ↔ hotel transfer list for any event. Add travelers, ' +
+      'auto-groups flights, assigns vehicles by group size, and exports a ' +
+      'fully styled .xlsx file.',
+    detail: [
+      'Groups travelers by flight automatically',
+      'SEDAN · VAN · SPRINTER · MINIBUS · BUS — auto-assigned',
+      'Merges cells for same-flight groups',
+      'Black borders · Red title · Bold centered data',
+      'Exports: {code}_{city}_{dates}_Transfer_List.xlsx',
+    ],
+    href:  '/transfer-list',
+    icon:  '🚌',
+    color: '#1d4ed8',
+    bg:    '#eff6ff',
+    label: 'Open Generator',
+  },
+  {
+    title: 'AV Equipment List Generator',
+    description:
+      'Build the conference AV equipment list for any event. Select setup style, ' +
+      'PAX, days, and configure each equipment item — exports a fully styled ' +
+      '.xlsx file matching the PSA template.',
+    detail: [
+      'Classroom · Cabaret · Theatre · U-Shape · Boardroom setup styles',
+      'LCD projector luminosity (3000–8000 lm) · Screen sizes',
+      'Auto-calculates wireless mic totals (lapel + handheld)',
+      'Simultaneous Interpretation: receivers & booth count',
+      'Exports: {code}_{city}_{date}_Equipment.xlsx',
+    ],
+    href:  '/av-equipment',
+    icon:  '🎛️',
+    color: '#7c3aed',
+    bg:    '#f5f3ff',
+    label: 'Open Generator',
+  },
+  {
+    title: 'Per Diem Form Generator',
+    description:
+      'Generate the PSA cash disbursement form for each traveler. Enter the ' +
+      'M&IE daily rate, visa cap, and ground transport cap — prints a ' +
+      'color-coded, signature-ready form.',
+    detail: [
+      'M&IE · Visa reimbursement · Ground transport sections',
+      'Green = traveler · Blue = LEM signature areas',
+      'Auto-calculates M&IE total (rate × days)',
+      'Print-ready layout · Save as PDF',
+      'IPS approval notes for overages',
+    ],
+    href:  '/per-diem-form',
+    icon:  '📋',
+    color: '#16a34a',
+    bg:    '#f0fdf4',
+    label: 'Open Generator',
+  },
+];
+
+const SOW_GENERATOR: GeneratorCard = {
+  title: 'SOW Event Generator',
+  description:
+    'Upload a CLDP LEM Statement of Work PDF and the system auto-extracts event details, ' +
+    'dates, location, and recommends task templates. Review, adjust, and generate the ' +
+    'event workspace in one click.',
+  detail: [
+    'Auto-extracts event code, dates, location, PAX from PDF',
+    'Detects included SOW packages (Venue, LEM, Language, Travel…)',
+    'Pre-selects matching task templates based on packages',
+    'Assign event owner to any team member',
+    'Google Drive folder structure preview',
+  ],
+  href:  '/sow-generator',
+  icon:  '📑',
+  color: '#b45309',
+  bg:    '#fffbeb',
+  label: 'Open Generator',
+};
+
+export function GeneratorsPage() {
+  const { isAdmin } = useUser();
+
+  return (
+    <div className="gen-page">
+      <header className="gen-page__header">
+        <h1>Generators</h1>
+        <p>Operational document generators — build, preview, and export event documents in one click.</p>
+      </header>
+
+      <div className="gen-grid">
+        {isAdmin && (
+          <div
+            key={SOW_GENERATOR.href}
+            className="gen-card gen-card--featured"
+            style={{ '--card-color': SOW_GENERATOR.color, '--card-bg': SOW_GENERATOR.bg } as React.CSSProperties}
+          >
+            <div className="gen-card__top">
+              <span className="gen-card__icon">{SOW_GENERATOR.icon}</span>
+              <h2 className="gen-card__title">{SOW_GENERATOR.title}</h2>
+            </div>
+            <p className="gen-card__desc">{SOW_GENERATOR.description}</p>
+            <ul className="gen-card__features">
+              {SOW_GENERATOR.detail.map((d) => (
+                <li key={d}><span className="gen-card__check">✓</span>{d}</li>
+              ))}
+            </ul>
+            <Link to={SOW_GENERATOR.href} className="gen-card__btn">
+              {SOW_GENERATOR.label} →
+            </Link>
+          </div>
+        )}
+        {GENERATORS.map((g) => (
+          <div key={g.href} className="gen-card" style={{ '--card-color': g.color, '--card-bg': g.bg } as React.CSSProperties}>
+            <div className="gen-card__top">
+              <span className="gen-card__icon">{g.icon}</span>
+              <h2 className="gen-card__title">{g.title}</h2>
+            </div>
+
+            <p className="gen-card__desc">{g.description}</p>
+
+            <ul className="gen-card__features">
+              {g.detail.map((d) => (
+                <li key={d}>
+                  <span className="gen-card__check">✓</span>
+                  {d}
+                </li>
+              ))}
+            </ul>
+
+            <Link to={g.href} className="gen-card__btn">
+              {g.label} →
+            </Link>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}

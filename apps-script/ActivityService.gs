@@ -1,0 +1,93 @@
+var ACTIVITY_COLS = {
+  ACTIVITY_ID: 'Activity ID',
+  TYPE: 'Type',
+  EVENT_CODE: 'Event Code',
+  TASK_ID: 'Task ID',
+  SUMMARY: 'Summary',
+  ACTOR: 'Actor',
+  CREATED_AT: 'Created At',
+};
+
+function getActivitySheet_() {
+  return getOrCreateSheet_(CONFIG.ACTIVITY_SHEET, Object.values(ACTIVITY_COLS));
+}
+
+function logActivity_(type, eventCode, taskId, summary, actor) {
+  var sheet = getActivitySheet_();
+  var map = getHeaderMap_(sheet);
+  var row = sheet.getLastRow() + 1;
+  var now = new Date().toISOString();
+
+  function setCol(name, val) {
+    var c = colIndex_(map, name);
+    if (c) sheet.getRange(row, c).setValue(val);
+  }
+
+  setCol(ACTIVITY_COLS.ACTIVITY_ID, Utilities.getUuid());
+  setCol(ACTIVITY_COLS.TYPE, type);
+  setCol(ACTIVITY_COLS.EVENT_CODE, eventCode || '');
+  setCol(ACTIVITY_COLS.TASK_ID, taskId || '');
+  setCol(ACTIVITY_COLS.SUMMARY, summary || '');
+  setCol(ACTIVITY_COLS.ACTOR, actor || '');
+  setCol(ACTIVITY_COLS.CREATED_AT, now);
+}
+
+function listActivity_(eventCode, limit) {
+  var sheet = getActivitySheet_();
+  var map = getHeaderMap_(sheet);
+  var lastRow = sheet.getLastRow();
+  if (lastRow <= 1) return [];
+
+  var data = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
+  var items = [];
+
+  for (var i = data.length - 1; i >= 0; i--) {
+    var row = data[i];
+    function cell(name) {
+      var c = colIndex_(map, name);
+      if (!c) return '';
+      return row[c - 1] != null ? String(row[c - 1]) : '';
+    }
+
+    var id = cell(ACTIVITY_COLS.ACTIVITY_ID);
+    if (!id) continue;
+    var code = cell(ACTIVITY_COLS.EVENT_CODE);
+    if (eventCode && code !== eventCode) continue;
+
+    items.push({
+      activityId: id,
+      type: cell(ACTIVITY_COLS.TYPE),
+      eventCode: code,
+      taskId: cell(ACTIVITY_COLS.TASK_ID),
+      summary: cell(ACTIVITY_COLS.SUMMARY),
+      actor: cell(ACTIVITY_COLS.ACTOR),
+      createdAt: cell(ACTIVITY_COLS.CREATED_AT),
+    });
+
+    if (limit && items.length >= limit) break;
+  }
+  return items;
+}
+
+function getTeamOverview_() {
+  var tasks = listTasksFromSheet_(getTasksSheet_(), getHeaderMap_(getTasksSheet_()), null, null);
+  var byAssignee = {};
+
+  tasks.forEach(function (t) {
+    var key = t.assigneeEmail || t.assigneeName || 'Unassigned';
+    if (!byAssignee[key]) {
+      byAssignee[key] = { email: t.assigneeEmail, name: t.assigneeName || 'Unassigned', tasks: [] };
+    }
+    byAssignee[key].tasks.push(t);
+  });
+
+  return {
+    members: Object.keys(byAssignee).map(function (k) {
+      return byAssignee[k];
+    }),
+    totalTasks: tasks.length,
+    openTasks: tasks.filter(function (t) {
+      return t.status !== 'done';
+    }).length,
+  };
+}

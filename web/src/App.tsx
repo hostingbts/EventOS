@@ -1,0 +1,47 @@
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { UserProvider } from './context/UserContext';
+import { AppLayout } from './layout/AppLayout';
+import { JoinTeamModal } from './components/JoinTeamModal';
+import { DashboardPage } from './pages/DashboardPage';
+import { EventWorkspacePage } from './pages/EventWorkspacePage';
+import { TeamPage } from './pages/TeamPage';
+import { TaskTemplatesPage } from './pages/TaskTemplatesPage';
+import { OrgTemplatesPage } from './pages/OrgTemplatesPage';
+import { VendorPortalPage } from './pages/VendorPortalPage';
+import { PerDiemFormPage } from './pages/PerDiemFormPage';
+import { TransferListPage } from './pages/TransferListPage';
+import { AVEquipmentPage } from './pages/AVEquipmentPage';
+import { GeneratorsPage } from './pages/GeneratorsPage';
+import { SOWGeneratorPage } from './pages/SOWGeneratorPage';
+import { DesignsPage } from './pages/DesignsPage';
+import { DesignWorkspacePage } from './pages/DesignWorkspacePage';
+import { AdminPanelPage } from './pages/AdminPanelPage';
+
+export default function App() {
+  return (
+    <UserProvider>
+      <BrowserRouter>
+        <JoinTeamModal />
+        <Routes>
+          <Route path="/vendor/:token" element={<VendorPortalPage />} />
+          <Route path="/per-diem-form" element={<PerDiemFormPage />} />
+          <Route path="/transfer-list" element={<TransferListPage />} />
+          <Route path="/av-equipment" element={<AVEquipmentPage />} />
+          <Route element={<AppLayout />}>
+            <Route index element={<DashboardPage />} />
+            <Route path="event/:eventCode" element={<EventWorkspacePage />} />
+            <Route path="team" element={<TeamPage />} />
+            <Route path="tasks" element={<TaskTemplatesPage />} />
+            <Route path="templates" element={<OrgTemplatesPage />} />
+            <Route path="designs" element={<DesignsPage />} />
+            <Route path="designs/:eventCode" element={<DesignWorkspacePage />} />
+            <Route path="generators" element={<GeneratorsPage />} />
+            <Route path="sow-generator" element={<SOWGeneratorPage />} />
+            <Route path="admin" element={<AdminPanelPage />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
+    </UserProvider>
+  );
+}

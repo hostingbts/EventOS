@@ -1,0 +1,41 @@
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.chip--success {
+  background: var(--success-soft);
+  color: #047857;
+}
+
+.chip--brand {
+  background: var(--accent-soft);
+  color: #4338ca;
+}
+
+.chip--warn {
+  background: var(--warning-soft);
+  color: #b45309;
+}
+
+.chip--danger {
+  background: var(--danger-soft);
+  color: #b91c1c;
+}
+
+.chip--muted {
+  background: var(--border-subtle);
+  color: var(--muted);
+}
+
+.chip--empty {
+  background: transparent;
+  color: var(--muted-light);
+  border: 1px dashed var(--border);
+}

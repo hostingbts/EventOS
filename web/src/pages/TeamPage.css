@@ -1,0 +1,126 @@
+.team header h1 {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+
+.team header p {
+  color: var(--muted);
+  margin: 0.4rem 0 1.75rem;
+}
+
+.team__stats {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.team__stat {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.15rem 1.5rem;
+  box-shadow: var(--shadow-sm);
+  min-width: 130px;
+  flex: 1;
+}
+
+.team__stat strong {
+  display: block;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: var(--primary);
+  line-height: 1.1;
+}
+
+.team__stat span {
+  font-size: 0.8rem;
+  color: var(--muted);
+  font-weight: 500;
+}
+
+.team__members {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1rem;
+}
+
+.team__card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 1.25rem;
+  box-shadow: var(--shadow-sm);
+}
+
+.team__card h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.team__email {
+  margin: 0.2rem 0 0.85rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.team__card ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.team__card li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.65rem 0;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.team__card a {
+  color: var(--ink-secondary);
+  text-decoration: none;
+  font-size: 0.88rem;
+  font-weight: 500;
+}
+
+.team__card a:hover {
+  color: var(--primary);
+}
+
+.team__status {
+  font-size: 0.68rem;
+  text-transform: capitalize;
+  align-self: flex-start;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 600;
+  background: var(--border-subtle);
+  color: var(--muted);
+}
+
+.team__status--in_progress {
+  background: var(--primary-soft);
+  color: var(--primary-hover);
+}
+
+.team__status--done {
+  background: var(--success-soft);
+  color: #047857;
+}
+
+.team__status--blocked {
+  background: var(--danger-soft);
+  color: #b91c1c;
+}
+
+.team__msg {
+  color: var(--muted);
+}

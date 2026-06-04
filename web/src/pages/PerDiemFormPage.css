@@ -1,0 +1,429 @@
+/* ─── Layout ─────────────────────────────────────────────────────────────── */
+
+.pdform-page {
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  grid-template-rows: auto 1fr;
+  min-height: 100dvh;
+  background: var(--bg);
+}
+
+.pdform-nav {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.85rem;
+}
+
+.pdform-nav a {
+  color: var(--primary);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.pdform-nav__title {
+  font-weight: 700;
+  color: var(--ink-secondary);
+}
+
+/* ─── Inputs panel ───────────────────────────────────────────────────────── */
+
+.pdform-inputs {
+  grid-column: 1;
+  padding: 1.5rem;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  height: calc(100dvh - 48px);
+  position: sticky;
+  top: 48px;
+}
+
+.pdform-inputs h1 {
+  margin: 0 0 0.35rem;
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.pdform-inputs__sub {
+  font-size: 0.82rem;
+  color: var(--muted);
+  margin: 0 0 1.25rem;
+  line-height: 1.5;
+}
+
+.pdform-inputs__form fieldset {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.pdform-inputs__form legend {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  padding: 0 0.35rem;
+}
+
+.pdform-inputs__form label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pdform-inputs__form label:last-child {
+  margin-bottom: 0;
+}
+
+.pdform-inputs__form input {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.65rem;
+  font-size: 0.9rem;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  background: var(--bg);
+  color: var(--ink);
+  width: 100%;
+}
+
+.pdform-inputs__form input:focus {
+  outline: 2px solid var(--primary);
+  outline-offset: 1px;
+  border-color: var(--primary);
+}
+
+.pdform-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.pdform-inputs__calc {
+  font-size: 0.82rem;
+  color: var(--muted);
+  background: var(--surface-hover);
+  border-radius: var(--radius-sm);
+  padding: 0.45rem 0.65rem;
+  margin: 0.5rem 0;
+}
+
+.pdform-inputs__calc strong {
+  color: var(--primary);
+}
+
+.pdform-inputs__actions {
+  display: flex;
+  gap: 0.5rem;
+  padding-top: 0.5rem;
+}
+
+.pdform-generate-btn {
+  flex: 1;
+  padding: 0.65rem 1rem;
+  font-size: 0.95rem;
+}
+
+/* ─── Output area ────────────────────────────────────────────────────────── */
+
+.pdform-output {
+  grid-column: 2;
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.pdform-output__toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.pdform-output__ready {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #047857;
+}
+
+.pdform-print-btn {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 0.55rem 1.15rem;
+  border-radius: var(--radius, 8px);
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.15s;
+  letter-spacing: 0.01em;
+}
+
+.pdform-print-btn:hover {
+  background: var(--primary-hover);
+}
+
+.pdform-edit-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 0.5rem 0.85rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.pdform-edit-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* ─── The document ───────────────────────────────────────────────────────── */
+
+.pdform-doc {
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  max-width: 720px;
+  padding: 2rem 2.5rem;
+  font-family: 'Times New Roman', Times, serif;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: #111;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+}
+
+.pdform-doc__header {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #111;
+}
+
+.pdform-doc__header h2 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.pdform-doc__header p {
+  margin: 0.2rem 0;
+  font-size: 0.9rem;
+}
+
+/* ─── Sections ───────────────────────────────────────────────────────────── */
+
+.pdform-section {
+  border: 1px solid #9ca3af;
+  border-radius: 4px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.pdfs-title {
+  background: #f3f4f6;
+  padding: 0.4rem 0.85rem;
+  border-bottom: 1px solid #d1d5db;
+  font-size: 0.88rem;
+}
+
+.pdfs-body {
+  padding: 0.65rem 0.85rem;
+}
+
+.pdfs-body p {
+  margin: 0 0 0.4rem;
+  font-size: 0.875rem;
+}
+
+.pdfs-calc {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 3px;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.875rem;
+}
+
+/* Fill lines */
+.pdfs-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.25rem;
+}
+
+.pdfs-field-row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.pdfs-fill-line {
+  flex: 1;
+  border-bottom: 1px solid #374151;
+  min-height: 1.2rem;
+}
+
+.pdfs-fill-line--total {
+  max-width: 200px;
+}
+
+.pdfs-total-row {
+  padding: 0.65rem 0.85rem;
+  font-size: 0.95rem;
+}
+
+/* Signature rows */
+.pdfs-sig-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.6rem 0.85rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+.pdfs-sig-row--traveler { background: #f0fdf4; }  /* green tint */
+.pdfs-sig-row--lem      { background: #eff6ff; }  /* blue tint */
+
+.pdfs-sig-block {
+  flex: 1;
+  font-size: 0.82rem;
+}
+
+.pdfs-sig-block p {
+  margin: 0 0 0.3rem;
+}
+
+.pdfs-sig-line {
+  border-bottom: 1px solid #374151;
+  min-height: 1.4rem;
+  margin-top: 0.35rem;
+}
+
+.pdfs-sig-line--short {
+  width: 100px;
+  display: inline-block;
+  margin-left: 0.35rem;
+}
+
+.pdfs-sig-subrow {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+  margin-top: 0.75rem;
+}
+
+/* Notes / colour coding hints */
+.pdfs-note {
+  max-width: 200px;
+  font-size: 0.72rem;
+  line-height: 1.45;
+  border-radius: 3px;
+  padding: 0.35rem 0.5rem;
+  flex-shrink: 0;
+}
+
+.pdfs-note--green {
+  background: #bbf7d0;
+  color: #14532d;
+  border: 1px solid #86efac;
+}
+
+.pdfs-note--blue {
+  background: #bfdbfe;
+  color: #1e3a5f;
+  border: 1px solid #93c5fd;
+}
+
+/* ─── Footer legend ──────────────────────────────────────────────────────── */
+
+.pdform-doc__legend {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e5e7eb;
+  font-family: Arial, sans-serif;
+}
+
+.pdfl {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+}
+
+.pdfl--green { background: #bbf7d0; color: #14532d; }
+.pdfl--blue  { background: #bfdbfe; color: #1e3a5f; }
+.pdfl--grey  { background: #e5e7eb; color: #374151; }
+
+/* ─── Responsive ─────────────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .pdform-page {
+    grid-template-columns: 1fr;
+  }
+  .pdform-inputs {
+    height: auto;
+    position: static;
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .pdform-output {
+    grid-column: 1;
+  }
+}
+
+/* ─── Print styles ───────────────────────────────────────────────────────── */
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .pdform-page {
+    display: block;
+    background: white;
+  }
+
+  .pdform-output {
+    padding: 0;
+  }
+
+  .pdform-doc {
+    box-shadow: none;
+    border: none;
+    border-radius: 0;
+    max-width: 100%;
+    padding: 1cm 1.5cm;
+    font-size: 10pt;
+  }
+
+  .pdform-section {
+    break-inside: avoid;
+  }
+
+  .pdfs-sig-row--traveler { background: #d1fae5 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .pdfs-sig-row--lem      { background: #dbeafe !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .pdfs-note--green       { background: #bbf7d0 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .pdfs-note--blue        { background: #bfdbfe !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

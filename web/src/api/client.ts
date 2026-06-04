@@ -1,0 +1,521 @@
+import type {
+  Comment,
+  Event,
+  EventHealth,
+  EventsResponse,
+  EventUpdates,
+  Task,
+  TaskFile,
+  TaskStatus,
+  TaskTemplate,
+  TaskTemplateWithFiles,
+  TeamOverview,
+  TemplateFile,
+  VendorLink,
+  VendorWorkspaceData,
+  WorkspaceData,
+} from '../types';
+import type { AuthAccount } from '../utils/authStore';
+import type { CapMatrix, OrgMember } from '../utils/roleStore';
+import { computeEventHealth } from '../utils/health';
+
+const API_URL = import.meta.env.VITE_API_URL || '';
+const API_TOKEN = import.meta.env.VITE_API_TOKEN || '';
+const USE_PROXY = import.meta.env.VITE_USE_PROXY === 'true';
+
+export function useMockData(): boolean {
+  return !API_URL || import.meta.env.VITE_USE_MOCK === 'true';
+}
+
+function apiBase(): string {
+  if (USE_PROXY) return '/api/proxy';
+  return API_URL;
+}
+
+function buildUrl(action: string, params?: Record<string, string>) {
+  if (USE_PROXY) {
+    const q = new URLSearchParams({ action, ...params });
+    return `${apiBase()}?${q.toString()}`;
+  }
+  const url = new URL(API_URL);
+  url.searchParams.set('action', action);
+  url.searchParams.set('token', API_TOKEN);
+  if (params) Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+  return url.toString();
+}
+
+async function parseJson<T>(res: Response): Promise<T> {
+  const data = await res.json();
+  if (!res.ok) throw new Error((data as { error?: string }).error || res.statusText);
+  return data as T;
+}
+
+async function post<T>(action: string, body: Record<string, unknown>): Promise<T> {
+  const url = USE_PROXY ? `/api/proxy?action=${action}` : API_URL;
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, token: API_TOKEN, ...body }),
+  });
+  return parseJson<T>(res);
+}
+
+// ——— Events ———
+
+export async function fetchEvents(): Promise<EventsResponse> {
+  if (useMockData()) {
+    const { mockEventsResponse } = await import('../data/mockEvents');
+    return mockEventsResponse;
+  }
+  return parseJson(await fetch(buildUrl('list')));
+}
+
+/**
+ * Returns per-event health summaries for the dashboard. In mock mode this
+ * pulls task/file data from the local store; in real mode it hits a
+ * lightweight `dashboardHealth` endpoint on the backend.
+ */
+export async function fetchDashboardHealth(): Promise<Record<string, EventHealth>> {
+  if (useMockData()) {
+    const [{ mockEventsResponse }, { getMockState }] = await Promise.all([
+      import('../data/mockEvents'),
+      import('../data/mockStore'),
+    ]);
+    const state = getMockState();
+    const map: Record<string, EventHealth> = {};
+    mockEventsResponse.events.forEach((ev: Event) => {
+      const tasks = state.tasksByEvent[ev.code] || [];
+      const files = Object.values(state.filesByTask)
+        .flat()
+        .filter((f) => f.eventCode === ev.code);
+      map[ev.code] = computeEventHealth(ev, tasks, files);
+    });
+    return map;
+  }
+  try {
+    const res = await parseJson<{ health: Record<string, EventHealth> }>(
+      await fetch(buildUrl('dashboardHealth')),
+    );
+    return res.health;
+  } catch {
+    return {};
+  }
+}
+
+export interface CreateEventInput {
+  code: string;
+  location?: string;
+  dates?: string;
+  startDate?: string;
+  endDate?: string;
+  monthGroup?: string;
+  venue?: string;
+  ownerEmail?: string;
+  notes?: string;
+  templateIds?: string[];
+}
+
+export interface CreateEventResult {
+  event: Event;
+  tasks: Task[];
+}
+
+export async function createEvent(
+  input: CreateEventInput,
+  actorEmail: string,
+): Promise<CreateEventResult> {
+  if (useMockData()) {
+    const { createMockEvent } = await import('../data/mockEvents');
+    const event = createMockEvent(input);
+    let tasks: Task[] = [];
+    if (input.templateIds && input.templateIds.length) {
+      const { applyMockTemplates } = await import('../data/mockCollaboration');
+      tasks = applyMockTemplates(event.code, event.rowId, input.templateIds);
+    }
+    return { event, tasks };
+  }
+  return post('eventCreate', { ...input, actorEmail });
+}
+
+export async function updateEvent(rowId: string, code: string, updates: EventUpdates): Promise<Event> {
+  if (useMockData()) {
+    const { updateMockEvent } = await import('../data/mockEvents');
+    return updateMockEvent(rowId, updates);
+  }
+  return post('update', { rowId, code, updates });
+}
+
+export async function fetchWorkspace(eventCode: string, eventRowId: string): Promise<WorkspaceData> {
+  if (useMockData()) {
+    const { getMockWorkspace } = await import('../data/mockCollaboration');
+    return getMockWorkspace(eventCode, eventRowId);
+  }
+  return parseJson(
+    await fetch(buildUrl('workspace', { eventCode, eventRowId })),
+  );
+}
+
+// ——— Tasks ———
+
+export async function fetchWhoami(actorEmail: string): Promise<{ isAdmin: boolean; email: string }> {
+  if (useMockData()) {
+    const admins = (import.meta.env.VITE_ADMIN_EMAILS || '')
+      .split(',')
+      .map((e: string) => e.trim().toLowerCase());
+    const isAdmin =
+      admins.length === 0
+        ? actorEmail.includes('admin') || actorEmail.includes('lead')
+        : admins.includes(actorEmail.toLowerCase());
+    return { isAdmin, email: actorEmail };
+  }
+  return post('whoami', { actorEmail });
+}
+
+export async function updateTask(
+  taskId: string,
+  updates: Partial<
+    Pick<Task, 'title' | 'status' | 'assigneeEmail' | 'assigneeName' | 'dueDate' | 'instructions' | 'internalNotes' | 'vendorVisible' | 'completedBy' | 'completedAt'>
+  >,
+  actorEmail: string,
+): Promise<Task> {
+  if (useMockData()) {
+    const { updateMockTask } = await import('../data/mockCollaboration');
+    return updateMockTask(taskId, updates as Partial<Task>, actorEmail);
+  }
+  return post('taskUpdate', { taskId, updates, actorEmail });
+}
+
+export async function createTask(payload: {
+  eventCode: string;
+  eventRowId: string;
+  title: string;
+  category?: string;
+  createdBy: string;
+}): Promise<Task> {
+  if (useMockData()) {
+    const { getMockWorkspace, updateMockTask } = await import('../data/mockCollaboration');
+    const ws = getMockWorkspace(payload.eventCode, payload.eventRowId);
+    return updateMockTask(ws.tasks[0].taskId, {
+      title: payload.title,
+      category: payload.category || 'General',
+    });
+  }
+  return post('taskCreate', payload);
+}
+
+// ——— Comments ———
+
+export async function addComment(payload: {
+  eventCode: string;
+  taskId?: string;
+  authorEmail: string;
+  authorName: string;
+  body: string;
+}): Promise<Comment> {
+  if (useMockData()) {
+    const { addMockComment } = await import('../data/mockCollaboration');
+    return addMockComment(payload);
+  }
+  return post('commentAdd', payload);
+}
+
+// ——— Files ———
+
+export async function uploadTaskFile(
+  taskId: string,
+  eventCode: string,
+  file: File,
+  uploadedBy: string,
+): Promise<TaskFile> {
+  if (useMockData()) {
+    const { addMockFile } = await import('../data/mockCollaboration');
+    return addMockFile(taskId, eventCode, file, uploadedBy);
+  }
+
+  const dataBase64 = await fileToBase64(file);
+  return post('fileUpload', {
+    taskId,
+    eventCode,
+    fileName: file.name,
+    mimeType: file.type,
+    dataBase64,
+    uploadedBy,
+  });
+}
+
+export async function deleteTaskFile(fileId: string, actorEmail: string): Promise<void> {
+  if (useMockData()) {
+    const { deleteMockFile } = await import('../data/mockCollaboration');
+    deleteMockFile(fileId);
+    return;
+  }
+  await post('fileDelete', { fileId, actorEmail });
+}
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result as string;
+      const base64 = result.split(',')[1] || result;
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+// ——— Team ———
+
+export async function fetchTeamOverview(): Promise<TeamOverview> {
+  if (useMockData()) {
+    const { getMockTeamOverview } = await import('../data/mockCollaboration');
+    return getMockTeamOverview();
+  }
+  return parseJson(await fetch(buildUrl('team')));
+}
+
+export async function healthCheck(): Promise<boolean> {
+  if (useMockData()) return true;
+  try {
+    const data = await parseJson<{ ok: boolean }>(await fetch(buildUrl('health')));
+    return data.ok;
+  } catch {
+    return false;
+  }
+}
+
+// ——— Templates ———
+
+export async function fetchTemplatesWithFiles(): Promise<TaskTemplateWithFiles[]> {
+  if (useMockData()) {
+    const { listMockTemplatesWithFiles } = await import('../data/mockTemplates');
+    return listMockTemplatesWithFiles();
+  }
+  const res = await parseJson<{ templates: TaskTemplateWithFiles[] }>(
+    await fetch(buildUrl('templatesList', { withFiles: 'true' })),
+  );
+  return res.templates;
+}
+
+export async function createTemplate(
+  payload: Partial<TaskTemplate> & { actorEmail: string },
+): Promise<TaskTemplate> {
+  if (useMockData()) {
+    const { createMockTemplate } = await import('../data/mockTemplates');
+    return createMockTemplate(payload);
+  }
+  return post('templateCreate', payload);
+}
+
+export async function updateTemplate(
+  templateId: string,
+  updates: Partial<TaskTemplate>,
+  actorEmail: string,
+): Promise<TaskTemplate> {
+  if (useMockData()) {
+    const { updateMockTemplate } = await import('../data/mockTemplates');
+    return updateMockTemplate(templateId, updates);
+  }
+  return post('templateUpdate', { templateId, updates, actorEmail });
+}
+
+export async function deleteTemplate(templateId: string, actorEmail: string): Promise<void> {
+  if (useMockData()) {
+    const { deleteMockTemplate } = await import('../data/mockTemplates');
+    deleteMockTemplate(templateId);
+    return;
+  }
+  await post('templateDelete', { templateId, actorEmail });
+}
+
+export async function uploadTemplateFile(
+  templateId: string,
+  file: File,
+  actorEmail: string,
+): Promise<TemplateFile> {
+  if (useMockData()) {
+    const { addMockTemplateFile } = await import('../data/mockTemplates');
+    return addMockTemplateFile(templateId, file);
+  }
+  const dataBase64 = await fileToBase64(file);
+  return post('templateFileUpload', {
+    templateId,
+    fileName: file.name,
+    mimeType: file.type,
+    dataBase64,
+    actorEmail,
+  });
+}
+
+export async function applyTemplates(
+  eventCode: string,
+  eventRowId: string,
+  templateIds: string[],
+  actorEmail: string,
+): Promise<Task[]> {
+  if (useMockData()) {
+    const { applyMockTemplates } = await import('../data/mockCollaboration');
+    return applyMockTemplates(eventCode, eventRowId, templateIds);
+  }
+  const res = await post<{ tasks: Task[] }>('applyTemplates', {
+    eventCode,
+    eventRowId,
+    templateIds,
+    actorEmail,
+  });
+  return res.tasks;
+}
+
+// ——— Vendor ———
+
+export function vendorPortalUrl(token: string): string {
+  const base = window.location.origin;
+  return `${base}/vendor/${encodeURIComponent(token)}`;
+}
+
+export interface VendorLinkOptions {
+  vendorCategory?: string;
+  vendorName?: string;
+  label?: string;
+  permission?: 'view' | 'collaborate';
+}
+
+export async function listVendorLinks(eventCode: string): Promise<VendorLink[]> {
+  if (useMockData()) {
+    const { listMockVendorLinks } = await import('../data/mockCollaboration');
+    return listMockVendorLinks(eventCode);
+  }
+  const res = await parseJson<{ links: VendorLink[] }>(
+    await fetch(buildUrl('vendorLinksList', { eventCode })),
+  );
+  return res.links;
+}
+
+export async function getVendorLink(
+  eventCode: string,
+  eventRowId: string,
+  actorEmail: string,
+  options: VendorLinkOptions = {},
+): Promise<VendorLink> {
+  if (useMockData()) {
+    const { getOrCreateMockVendorLink } = await import('../data/mockCollaboration');
+    return getOrCreateMockVendorLink(eventCode, eventRowId, options);
+  }
+  const res = await parseJson<{ link: VendorLink }>(
+    await fetch(
+      buildUrl('vendorLinkGet', {
+        eventCode,
+        eventRowId,
+        actorEmail,
+        vendorCategory: options.vendorCategory || '',
+        vendorName: options.vendorName || '',
+        label: options.label || '',
+        permission: options.permission || 'view',
+      }),
+    ),
+  );
+  return res.link;
+}
+
+export async function regenerateVendorLink(
+  eventCode: string,
+  eventRowId: string,
+  actorEmail: string,
+  options: VendorLinkOptions = {},
+): Promise<VendorLink> {
+  if (useMockData()) {
+    const { regenerateMockVendorLink } = await import('../data/mockCollaboration');
+    return regenerateMockVendorLink(eventCode, eventRowId, options);
+  }
+  const res = await post<{ link: VendorLink }>('vendorLinkRegenerate', {
+    eventCode,
+    eventRowId,
+    actorEmail,
+    ...options,
+  });
+  return res.link;
+}
+
+export async function revokeVendorLink(linkId: string, actorEmail: string): Promise<void> {
+  if (useMockData()) {
+    const { revokeMockVendorLink } = await import('../data/mockCollaboration');
+    revokeMockVendorLink(linkId);
+    return;
+  }
+  await post('vendorLinkRevoke', { linkId, actorEmail });
+}
+
+export async function fetchVendorWorkspace(vendorToken: string): Promise<VendorWorkspaceData> {
+  if (useMockData()) {
+    const { getMockVendorWorkspace } = await import('../data/mockCollaboration');
+    return getMockVendorWorkspace(vendorToken);
+  }
+  return parseJson(
+    await fetch(
+      API_URL +
+        '?action=vendorWorkspace&vendorToken=' +
+        encodeURIComponent(vendorToken),
+    ),
+  );
+}
+
+export const TASK_STATUSES: { value: TaskStatus; label: string }[] = [
+  { value: 'todo', label: 'To do' },
+  { value: 'in_progress', label: 'In progress' },
+  { value: 'blocked', label: 'Blocked' },
+  { value: 'done', label: 'Done' },
+];
+
+// ——— Auth accounts ———
+
+export async function apiAuthRegister(
+  name: string,
+  email: string,
+  passwordHash: string,
+): Promise<AuthAccount> {
+  return post('authRegister', { name, email, passwordHash });
+}
+
+export async function apiAuthLogin(
+  email: string,
+  passwordHash: string,
+): Promise<AuthAccount | null> {
+  const res = await post<{ account: AuthAccount | null }>('authLogin', { email, passwordHash });
+  return res.account;
+}
+
+export async function apiAuthChangePassword(email: string, newHash: string): Promise<void> {
+  await post('authChangePassword', { email, newHash });
+}
+
+export async function apiAuthList(): Promise<AuthAccount[]> {
+  const res = await parseJson<{ accounts: AuthAccount[] }>(await fetch(buildUrl('authList')));
+  return res.accounts;
+}
+
+// ——— Org members ———
+
+export async function apiMembersList(): Promise<OrgMember[]> {
+  const res = await parseJson<{ members: OrgMember[] }>(await fetch(buildUrl('membersList')));
+  return res.members;
+}
+
+export async function apiMembersUpsert(member: OrgMember, actorEmail: string): Promise<void> {
+  await post('membersUpsert', { member, actorEmail });
+}
+
+export async function apiMembersDeactivate(id: string, actorEmail: string): Promise<void> {
+  await post('membersDeactivate', { id, actorEmail });
+}
+
+// ——— Role capabilities ———
+
+export async function apiCapsList(): Promise<CapMatrix | null> {
+  const res = await parseJson<{ matrix: CapMatrix | null }>(await fetch(buildUrl('capsList')));
+  return res.matrix;
+}
+
+export async function apiCapsSave(matrix: CapMatrix, actorEmail: string): Promise<void> {
+  await post('capsSave', { matrix, actorEmail });
+}

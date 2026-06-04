@@ -1,0 +1,148 @@
+.event-card {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  padding: 1rem 1.1rem;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+  color: inherit;
+}
+
+.event-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-card);
+  border-color: color-mix(in srgb, var(--primary) 35%, var(--border));
+}
+
+.event-card--selected {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-soft), var(--shadow-card);
+}
+
+.event-card__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.event-card__code {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+
+.event-card__badge {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  background: var(--warning-soft);
+  color: #b45309;
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+}
+
+.event-card__tier {
+  font-size: 0.6rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  padding: 0.18rem 0.5rem;
+  border-radius: 999px;
+}
+
+.event-card__tier--on-track {
+  background: var(--success-soft);
+  color: #047857;
+}
+
+.event-card__tier--attention {
+  background: var(--warning-soft);
+  color: #b45309;
+}
+
+.event-card__tier--at-risk {
+  background: #fde2e2;
+  color: #b91c1c;
+}
+
+.event-card__tier--critical {
+  background: #b91c1c;
+  color: white;
+}
+
+.event-card--tier-critical {
+  border-color: #fecaca;
+}
+
+.event-card--tier-at-risk {
+  border-color: #fed7aa;
+}
+
+.event-card__health {
+  margin: 0.65rem 0 0.75rem;
+}
+
+.event-card__health-bar {
+  height: 6px;
+  width: 100%;
+  background: var(--border-subtle);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.event-card__health-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary) 0%, var(--accent, var(--primary-hover)) 100%);
+  transition: width 0.4s ease;
+  min-width: 4px;
+}
+
+.event-card--tier-critical .event-card__health-fill {
+  background: linear-gradient(90deg, #ef4444, #b91c1c);
+}
+
+.event-card--tier-at-risk .event-card__health-fill {
+  background: linear-gradient(90deg, #f97316, #ea580c);
+}
+
+.event-card__health-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: var(--muted);
+  margin-top: 0.4rem;
+}
+
+.event-card__health-meta strong {
+  color: var(--ink);
+}
+
+.event-card__overdue {
+  color: var(--danger);
+  font-weight: 600;
+}
+
+.event-card__location {
+  font-weight: 600;
+  color: var(--ink-secondary);
+  font-size: 0.95rem;
+}
+
+.event-card__dates {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 0.65rem;
+}
+
+.event-card__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
