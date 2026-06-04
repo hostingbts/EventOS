@@ -40,9 +40,10 @@ jobs:
         run: npm run build
         working-directory: web
         env:
+          VITE_BASE_URL: /EventOS/
+          VITE_USE_MOCK: "true"
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
           VITE_API_TOKEN: ${{ secrets.VITE_API_TOKEN }}
-          VITE_BASE_URL: ${{ secrets.VITE_BASE_URL }}
           VITE_USE_PROXY: "false"
 
       - name: Upload Pages artifact

@@ -17,10 +17,13 @@ import { DesignsPage } from './pages/DesignsPage';
 import { DesignWorkspacePage } from './pages/DesignWorkspacePage';
 import { AdminPanelPage } from './pages/AdminPanelPage';
 
+// Must match VITE_BASE_URL so client-side routing works on GitHub Pages
+const basename = import.meta.env.BASE_URL ?? '/';
+
 export default function App() {
   return (
     <UserProvider>
-      <BrowserRouter>
+      <BrowserRouter basename={basename}>
         <JoinTeamModal />
         <Routes>
           <Route path="/vendor/:token" element={<VendorPortalPage />} />
