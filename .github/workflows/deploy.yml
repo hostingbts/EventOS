@@ -38,6 +38,8 @@ jobs:
         working-directory: web
         run: npm run build
         env:
+          CI: "true"
+          NODE_OPTIONS: "--max-old-space-size=4096"
           VITE_BASE_URL: /EventOS/
           VITE_USE_MOCK: "true"
           VITE_USE_PROXY: "false"
