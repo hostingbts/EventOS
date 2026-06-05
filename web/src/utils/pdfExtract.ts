@@ -1,21 +1,30 @@
 /**
  * Shared PDF text extraction for SOW and ticket parsers.
  *
- * Uses pdfjs-dist/legacy — the standard build relies on Promise.withResolvers,
- * URL.parse, etc. inside a Web Worker where our main-thread polyfills do not
- * apply (Safari throws "undefined is not a function" on GitHub Pages).
+ * Uses pdfjs-dist/legacy and runs the worker on the main thread via
+ * globalThis.pdfjsWorker. Safari on GitHub Pages fails when pdf.js spins up
+ * a module Web Worker ("undefined is not a function"); local dev often falls
+ * back to the main thread automatically, which is why it works offline.
  */
+
+declare global {
+  // eslint-disable-next-line no-var
+  var pdfjsWorker: { WorkerMessageHandler: unknown } | undefined;
+}
 
 let pdfjsPromise: Promise<typeof import('pdfjs-dist/legacy/build/pdf.mjs')> | null = null;
 
 async function getPdfJs() {
   if (!pdfjsPromise) {
-    pdfjsPromise = import('pdfjs-dist/legacy/build/pdf.mjs').then((pdfjsLib) => {
-      const base = import.meta.env.BASE_URL || '/';
-      pdfjsLib.GlobalWorkerOptions.workerSrc =
-        `${base}pdf.worker.min.mjs?v=legacy-6.0.227`;
+    pdfjsPromise = (async () => {
+      const [pdfjsLib, workerMod] = await Promise.all([
+        import('pdfjs-dist/legacy/build/pdf.mjs'),
+        // @ts-expect-error — no types published for the worker entry
+        import('pdfjs-dist/legacy/build/pdf.worker.mjs') as Promise<{ WorkerMessageHandler: unknown }>,
+      ]);
+      globalThis.pdfjsWorker = workerMod;
       return pdfjsLib;
-    });
+    })();
   }
   return pdfjsPromise;
 }
