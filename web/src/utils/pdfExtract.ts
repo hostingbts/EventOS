@@ -12,7 +12,8 @@ async function getPdfJs() {
   if (!pdfjsPromise) {
     pdfjsPromise = import('pdfjs-dist/legacy/build/pdf.mjs').then((pdfjsLib) => {
       const base = import.meta.env.BASE_URL || '/';
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `${base}pdf.worker.min.mjs`;
+      pdfjsLib.GlobalWorkerOptions.workerSrc =
+        `${base}pdf.worker.min.mjs?v=legacy-6.0.227`;
       return pdfjsLib;
     });
   }
