@@ -162,4 +162,4 @@ With no secrets configured, the build sets `VITE_USE_MOCK=true`. Events, tasks, 
 3. Push to `main` or re-run the **Deploy to GitHub Pages** workflow.
 4. Hard-refresh the site. The **Demo** badge should disappear and events load from your sheet.
 
-**CORS:** Apps Script must be deployed with access **Anyone** (token auth) or your org domain, or browser requests from `github.io` will fail.
+**CORS / writes from GitHub Pages:** GET requests (list events) work from `github.io`, but browser POST to Apps Script often fails with **Load failed**. After updating `Api.gs` in this repo, **redeploy** the web app (Deploy → Manage deployments → New version). The frontend sends small writes (create event, update task) as `GET ?payload=…` instead of POST. Large file uploads still need the Vite dev proxy or a serverless proxy (`web/api/proxy.js` on Vercel).

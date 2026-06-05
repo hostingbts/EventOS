@@ -204,14 +204,22 @@ export function SOWGeneratorPage() {
 
       // Attach the SOW PDF to the SOW task (internal only — not visible to vendors)
       if (sowFile && result.tasks.length > 0) {
-        // Prefer the tpl-sow task; fall back to the first task
         const sowTask =
           result.tasks.find((t) => t.templateId === 'tpl-sow') ??
           result.tasks[0];
 
-        // Mark the task as internal (vendor-invisible) then upload the file
         await updateTask(sowTask.taskId, { vendorVisible: 'no' }, user?.email ?? '');
-        await uploadTaskFile(sowTask.taskId, result.event.code, sowFile, user?.email ?? '');
+        try {
+          await uploadTaskFile(sowTask.taskId, result.event.code, sowFile, user?.email ?? '');
+        } catch (uploadErr) {
+          const msg = uploadErr instanceof Error ? uploadErr.message : 'Upload failed';
+          setGenError(
+            `Event ${result.event.code} was created, but the SOW PDF could not be attached (${msg}). ` +
+              'Open the event workspace and upload the PDF to the SOW task manually.',
+          );
+          navigate(`/event/${result.event.code}`);
+          return;
+        }
       }
 
       navigate(`/event/${result.event.code}`);

@@ -13,6 +13,29 @@ function parseBody_(e) {
   return {};
 }
 
+/** GET ?payload={json} — used by static frontends (GitHub Pages) where POST hits CORS. */
+function parseGetPayload_(e) {
+  var raw = e && e.parameter && e.parameter.payload;
+  if (!raw) return {};
+  try {
+    return JSON.parse(decodeURIComponent(raw));
+  } catch (err1) {
+    try {
+      return JSON.parse(raw);
+    } catch (err2) {
+      return {};
+    }
+  }
+}
+
+function hasGetPayload_(e) {
+  return !!(e && e.parameter && e.parameter.payload);
+}
+
+function acceptsWrite_(method, e) {
+  return method === 'POST' || hasGetPayload_(e);
+}
+
 function getActorEmail_(body, e) {
   if (body && body.actorEmail) return body.actorEmail;
   if (e && e.parameter && e.parameter.actorEmail) return e.parameter.actorEmail;
@@ -21,7 +44,7 @@ function getActorEmail_(body, e) {
 
 function handleRequest_(e, method) {
   try {
-    var body = method === 'POST' ? parseBody_(e) : {};
+    var body = method === 'POST' ? parseBody_(e) : parseGetPayload_(e);
     var action = (e && e.parameter && e.parameter.action) || body.action || '';
     var vendorToken =
       (e && e.parameter && e.parameter.vendorToken) || body.vendorToken || '';
@@ -58,19 +81,19 @@ function handleRequest_(e, method) {
       return jsonResponse_(ev);
     }
 
-    if (action === 'update' && method === 'POST') {
+    if (action === 'update' && acceptsWrite_(method, e)) {
       var target = findEventRow_(body.rowId, body.code);
       if (!target) return jsonResponse_({ error: 'Not found' }, 404);
       updateEventFields_(target.rowNumber, body.updates || {});
       return jsonResponse_(findEventRow_(target.rowId, target.code));
     }
 
-    if (action === 'eventCreate' && method === 'POST') {
+    if (action === 'eventCreate' && acceptsWrite_(method, e)) {
       body.createdBy = actorEmail || body.createdBy || '';
       return jsonResponse_(createEvent_(body));
     }
 
-    if (action === 'eventDelete' && method === 'POST') {
+    if (action === 'eventDelete' && acceptsWrite_(method, e)) {
       return jsonResponse_(
         deleteEvent_(body.rowId, body.code, actorEmail),
       );
@@ -183,7 +206,7 @@ function handleRequest_(e, method) {
       return jsonResponse_(createTask_(body));
     }
 
-    if (action === 'taskUpdate' && method === 'POST') {
+    if (action === 'taskUpdate' && acceptsWrite_(method, e)) {
       return jsonResponse_(updateTask_(body.taskId, body.updates || {}, actorEmail));
     }
 
@@ -205,7 +228,7 @@ function handleRequest_(e, method) {
       });
     }
 
-    if (action === 'fileUpload' && method === 'POST') {
+    if (action === 'fileUpload' && acceptsWrite_(method, e)) {
       return jsonResponse_(uploadFile_(body));
     }
 

@@ -70,14 +70,53 @@ async function parseJson<T>(res: Response): Promise<T> {
   }
 }
 
+const PAYLOAD_GET_LIMIT = 6000;
+
+function networkErrorMessage(err: unknown): string {
+  if (err instanceof TypeError) {
+    const msg = err.message.toLowerCase();
+    if (msg.includes('load failed') || msg.includes('failed to fetch') || msg.includes('networkerror')) {
+      return (
+        'Could not reach the Google Apps Script API. Reading events works over GET, but creating events ' +
+        'requires a backend update: redeploy Apps Script (Api.gs) from this repo, then hard-refresh the site. ' +
+        'For local dev, use npm run dev with VITE_USE_PROXY=true in .env.local.'
+      );
+    }
+  }
+  return err instanceof Error ? err.message : 'Request failed';
+}
+
 async function post<T>(action: string, body: Record<string, unknown>): Promise<T> {
-  const url = USE_PROXY ? `/api/proxy?action=${action}` : API_URL;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action, token: API_TOKEN, ...body }),
-  });
-  return parseJson<T>(res);
+  const fullBody = { action, token: API_TOKEN, ...body };
+  const payloadJson = JSON.stringify(fullBody);
+
+  try {
+    if (USE_PROXY) {
+      const url = `/api/proxy?action=${action}`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: payloadJson,
+      });
+      return parseJson<T>(res);
+    }
+
+    // Static hosts (GitHub Pages): browser POST to script.google.com fails CORS/redirect.
+    // Send small writes as GET ?payload=… when Apps Script accepts it.
+    if (payloadJson.length <= PAYLOAD_GET_LIMIT) {
+      const url = buildUrl(action, { payload: payloadJson });
+      return parseJson<T>(await fetch(url));
+    }
+
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: payloadJson,
+    });
+    return parseJson<T>(res);
+  } catch (err) {
+    throw new Error(networkErrorMessage(err));
+  }
 }
 
 // ——— Events ———
