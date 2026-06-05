@@ -9,7 +9,7 @@ import {
   eventBarSpan,
   eventColorIndex,
   EVENT_BAR_PALETTE,
-  parseIsoDate,
+  getEventDateRange,
   startOfMonth,
   toIsoDate,
 } from '../utils/calendarDates';
@@ -19,25 +19,40 @@ const DAY_COL_W = 44;
 const LABEL_COL_W = 168;
 const LANE_H = 34;
 
+interface CalendarEvent {
+  event: Event;
+  start: string;
+  end: string;
+}
+
 interface CalendarRow {
   key: string;
   label: string;
   email: string;
-  events: Event[];
+  events: CalendarEvent[];
 }
 
-function buildRows(members: TeamMember[], events: Event[]): CalendarRow[] {
+function resolveCalendarEvents(events: Event[]): CalendarEvent[] {
+  const resolved: CalendarEvent[] = [];
+  for (const event of events) {
+    const range = getEventDateRange(event);
+    if (range) resolved.push({ event, start: range.start, end: range.end });
+  }
+  return resolved;
+}
+
+function buildRows(members: TeamMember[], events: CalendarEvent[]): CalendarRow[] {
   const nameByEmail = new Map<string, string>();
   for (const m of members) {
     if (m.email) nameByEmail.set(m.email.toLowerCase(), m.name);
   }
 
-  const byOwner = new Map<string, Event[]>();
-  for (const ev of events) {
-    const email = ev.ownerEmail?.trim().toLowerCase() || '';
+  const byOwner = new Map<string, CalendarEvent[]>();
+  for (const item of events) {
+    const email = item.event.ownerEmail?.trim().toLowerCase() || '';
     const key = email || '__unassigned__';
     if (!byOwner.has(key)) byOwner.set(key, []);
-    byOwner.get(key)!.push(ev);
+    byOwner.get(key)!.push(item);
   }
 
   // Include team members even if they have no events this month
@@ -59,7 +74,7 @@ function buildRows(members: TeamMember[], events: Event[]): CalendarRow[] {
       key: email,
       email,
       label: nameByEmail.get(email) ?? email.split('@')[0],
-      events: evs.sort((a, b) => (a.startDate || '').localeCompare(b.startDate || '')),
+      events: evs.sort((a, b) => a.start.localeCompare(b.start)),
     });
   }
 
@@ -69,7 +84,7 @@ function buildRows(members: TeamMember[], events: Event[]): CalendarRow[] {
       email: '',
       label: 'Unassigned',
       events: byOwner.get('__unassigned__')!.sort((a, b) =>
-        (a.startDate || '').localeCompare(b.startDate || ''),
+        a.start.localeCompare(b.start),
       ),
     });
   }
@@ -77,15 +92,10 @@ function buildRows(members: TeamMember[], events: Event[]): CalendarRow[] {
   return rows;
 }
 
-function eventsInMonth(events: Event[], month: Date): Event[] {
+function eventsInMonth(events: CalendarEvent[], month: Date): CalendarEvent[] {
   const ms = toIsoDate(startOfMonth(month));
   const me = toIsoDate(endOfMonth(month));
-  return events.filter((ev) => {
-    const start = ev.startDate;
-    if (!start) return false;
-    const end = ev.endDate || start;
-    return start <= me && end >= ms;
-  });
+  return events.filter((item) => item.start <= me && item.end >= ms);
 }
 
 export function CalendarPage() {
@@ -95,19 +105,32 @@ export function CalendarPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([fetchEvents(), fetchTeamOverview()])
-      .then(([evRes, team]) => {
-        setAllEvents(evRes.events ?? []);
-        setMembers(team?.members ?? []);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      const [evRes, teamRes] = await Promise.allSettled([
+        fetchEvents(),
+        fetchTeamOverview(),
+      ]);
+      if (cancelled) return;
+      if (evRes.status === 'fulfilled') {
+        setAllEvents(evRes.value.events ?? []);
+      }
+      if (teamRes.status === 'fulfilled') {
+        setMembers(teamRes.value?.members ?? []);
+      }
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const days = useMemo(() => buildMonthDays(month), [month]);
-  const monthEvents = useMemo(() => eventsInMonth(allEvents, month), [allEvents, month]);
+  const calendarEvents = useMemo(() => resolveCalendarEvents(allEvents), [allEvents]);
+  const monthEvents = useMemo(() => eventsInMonth(calendarEvents, month), [calendarEvents, month]);
   const rows = useMemo(() => buildRows(members, monthEvents), [members, monthEvents]);
-  const undatedCount = allEvents.filter((e) => !parseIsoDate(e.startDate)).length;
+  const undatedCount = allEvents.length - calendarEvents.length;
 
   const monthTitle = month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
 
@@ -167,15 +190,17 @@ export function CalendarPage() {
           </div>
 
           {/* Member rows */}
-          {rows.length === 0 ? (
+          {monthEvents.length === 0 ? (
             <p className="cal__empty">No events with dates in {monthTitle}.</p>
           ) : (
-            rows.map((row) => {
+            rows
+              .filter((row) => row.events.length > 0)
+              .map((row) => {
               const laneInput = row.events
-                .map((ev) => ({
-                  id: ev.rowId,
-                  start: ev.startDate,
-                  end: ev.endDate || ev.startDate,
+                .map((item) => ({
+                  id: item.event.rowId,
+                  start: item.start,
+                  end: item.end,
                 }))
                 .filter((e) => eventBarSpan(e.start, e.end, days));
               const lanes = assignEventLanes(laneInput);
@@ -212,12 +237,9 @@ export function CalendarPage() {
                       />
                     ))}
 
-                    {row.events.map((ev) => {
-                      const span = eventBarSpan(
-                        ev.startDate,
-                        ev.endDate || ev.startDate,
-                        days,
-                      );
+                    {row.events.map((item) => {
+                      const ev = item.event;
+                      const span = eventBarSpan(item.start, item.end, days);
                       if (!span) return null;
                       const lane = lanes.get(ev.rowId) ?? 0;
                       const pal = EVENT_BAR_PALETTE[eventColorIndex(ev.code)];
