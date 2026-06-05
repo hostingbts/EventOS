@@ -9,10 +9,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
-import { createEvent, fetchTeamOverview, fetchTemplatesWithFiles, updateTask, uploadTaskFile } from '../api/client';
+import { createEvent, fetchTeamOverview, fetchTemplatesWithFiles, updateTask, uploadTaskFile, applyTemplates } from '../api/client';
 import { parseSOWPdf } from '../utils/parseSOW';
 import type { ParsedSOW } from '../utils/parseSOW';
 import type { TaskTemplateWithFiles, TeamMember } from '../types';
+import { findSowTask, isTemplateSuggested, resolveTemplateIds } from '../utils/templateMatch';
 import './SOWGeneratorPage.css';
 
 // ─── Drive folder structure preview ──────────────────────────────────────────
@@ -96,6 +97,12 @@ export function SOWGeneratorPage() {
       .catch(() => {});
   }, []);
 
+  // Map SOW package suggestions → real template IDs once templates are loaded
+  useEffect(() => {
+    if (!parsed || templates.length === 0) return;
+    setSelectedTemplates(new Set(resolveTemplateIds(parsed.suggestedTemplateIds, templates)));
+  }, [parsed, templates]);
+
   // ── Drag & drop ────────────────────────────────────────────────────────────
   function handleDragOver(e: React.DragEvent) {
     e.preventDefault();
@@ -135,9 +142,7 @@ export function SOWGeneratorPage() {
       setPax(sow.totalParticipants);
       setLanguage(sow.language);
       setVenue('');
-      // Pre-select suggested templates
-      setSelectedTemplates(new Set(sow.suggestedTemplateIds));
-      // Default assignee to current user
+      // Template selection is synced in useEffect once templates load
       setAssignee(user?.email ?? '');
     } catch (err) {
       setParseErr(err instanceof Error ? err.message : 'Failed to parse PDF');
@@ -186,7 +191,8 @@ export function SOWGeneratorPage() {
     setGenError('');
     try {
       const dates = humanDates(startDate, endDate);
-      const result = await createEvent(
+      const templateIds = resolveTemplateIds(Array.from(selectedTemplates), templates);
+      let result = await createEvent(
         {
           code:        code.trim(),
           location:    location.trim(),
@@ -197,16 +203,30 @@ export function SOWGeneratorPage() {
           venue:       venue.trim(),
           ownerEmail:  assignee.trim() || user?.email || '',
           notes:       [title ? `Meeting: ${title}` : '', pax ? `PAX: ${pax}` : '', language ? `Language: ${language}` : '', notes].filter(Boolean).join('\n'),
-          templateIds: Array.from(selectedTemplates),
+          templateIds,
         },
         user?.email ?? '',
       );
 
+      // Fallback if the sheet ignored template IDs during create
+      if (templateIds.length > 0 && result.tasks.length === 0) {
+        try {
+          const tasks = await applyTemplates(
+            result.event.code,
+            result.event.rowId,
+            templateIds,
+            user?.email ?? '',
+          );
+          result = { event: result.event, tasks };
+        } catch {
+          /* applyTemplates may be unavailable until Api.gs is redeployed */
+        }
+      }
+
       // Attach the SOW PDF to the SOW task (internal only — not visible to vendors)
       if (sowFile && result.tasks.length > 0) {
-        const sowTask =
-          result.tasks.find((t) => t.templateId === 'tpl-sow') ??
-          result.tasks[0];
+        const sowTask = findSowTask(result.tasks);
+        if (!sowTask) throw new Error('No tasks were created — cannot attach SOW PDF');
 
         await updateTask(sowTask.taskId, { vendorVisible: 'no' }, user?.email ?? '');
         try {
@@ -220,6 +240,13 @@ export function SOWGeneratorPage() {
           navigate(`/event/${result.event.code}`);
           return;
         }
+      } else if (sowFile && templateIds.length > 0) {
+        setGenError(
+          `Event ${result.event.code} was created, but no tasks were generated from templates. ` +
+            'Open the event, add templates manually, then upload the SOW PDF.',
+        );
+        navigate(`/event/${result.event.code}`);
+        return;
       }
 
       navigate(`/event/${result.event.code}`);
@@ -452,7 +479,9 @@ export function SOWGeneratorPage() {
                 </p>
                 <div className="sow-tpl-list">
                   {templates.map(({ template }) => {
-                    const suggested = parsed?.suggestedTemplateIds.includes(template.templateId);
+                    const suggested = parsed
+                      ? isTemplateSuggested(template.templateId, parsed.suggestedTemplateIds, templates)
+                      : false;
                     return (
                       <label
                         key={template.templateId}

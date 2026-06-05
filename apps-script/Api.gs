@@ -153,7 +153,7 @@ function handleRequest_(e, method) {
       return jsonResponse_(deleteTemplateFile_(body.fileId, actorEmail));
     }
 
-    if (action === 'applyTemplates' && method === 'POST') {
+    if (action === 'applyTemplates' && acceptsWrite_(method, e)) {
       return jsonResponse_(
         applyTemplatesToEvent_(body.eventCode, body.eventRowId, body.templateIds || [], actorEmail)
       );
