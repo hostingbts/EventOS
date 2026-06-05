@@ -225,10 +225,11 @@
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 0.05rem;
+  gap: 0.1rem;
   margin: 0 2px;
-  padding: 0.2rem 0.45rem;
-  height: 28px;
+  padding: 0.35rem 0.5rem;
+  min-height: 42px;
+  height: 42px;
   border-radius: 6px;
   border: 1px solid;
   text-decoration: none;
@@ -244,17 +245,19 @@
 }
 
 .cal__bar-code {
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 800;
   letter-spacing: -0.02em;
+  line-height: 1.15;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .cal__bar-sub {
-  font-size: 0.62rem;
+  font-size: 0.68rem;
   font-weight: 500;
+  line-height: 1.15;
   opacity: 0.85;
   white-space: nowrap;
   overflow: hidden;
