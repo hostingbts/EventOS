@@ -23,6 +23,24 @@ Import sample structure from `docs/sheet-headers.csv`.
    - If you already created a standalone project at script.google.com, set **`SPREADSHEET_ID`** in Script properties instead.
 2. Delete default `Code.gs` content.
 3. Create one file per file in this repo’s `apps-script/` folder (or run `clasp push` from `apps-script/`).
+
+   **Required files** (event workspace breaks if any core file is missing):
+
+   | File | Purpose |
+   |------|---------|
+   | `Api.gs` | HTTP API entry |
+   | `Config.gs` | Sheet/column names |
+   | `SheetService.gs` | Events sheet |
+   | `TasksService.gs` | Tasks |
+   | `CommentsService.gs` | Comments |
+   | `FilesService.gs` | File uploads |
+   | `ActivityService.gs` | Activity log |
+   | `TemplatesService.gs` | Task templates |
+   | `VendorLinksService.gs` | Vendor portal links (`listVendorLinks_`) |
+   | `Auth.gs` | Admin checks |
+   | `AccountsService.gs` | Login accounts (optional) |
+   | `OrgMembersService.gs` | Team roles (optional) |
+
 4. **Project settings → Script properties**:
 
 | Property | Value |
@@ -144,6 +162,7 @@ Recipients: **Owner Email** + **EVENT_MANAGER_EMAIL**.
 | Demo mode | Leave `VITE_API_URL` empty — mock data loads automatically |
 | GitHub Pages shows **Demo** badge | Expected until you add repo secrets (see below) |
 | PDF upload fails on Safari (github.io) | Hard-refresh after deploy; site uses bundled `unpdf` (no separate worker) |
+| `listVendorLinks_ is not defined` when opening an event | Add `VendorLinksService.gs` to the Apps Script project, then **Deploy → Manage deployments → New version** |
 
 ## 8. GitHub Pages (hostingbts.github.io/EventOS)
 

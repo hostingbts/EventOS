@@ -161,6 +161,9 @@ function handleRequest_(e, method) {
 
     // ——— Vendor links (team) ———
     if (action === 'vendorLinksList') {
+      if (typeof listVendorLinks_ !== 'function') {
+        return jsonResponse_({ links: [] });
+      }
       var listEc = e.parameter.eventCode || body.eventCode || '';
       var allLinks = listVendorLinks_(listEc).filter(function (l) {
         return String(l.active).toLowerCase() === 'yes';
@@ -169,6 +172,11 @@ function handleRequest_(e, method) {
     }
 
     if (action === 'vendorLinkGet') {
+      if (typeof getOrCreateVendorLink_ !== 'function') {
+        return jsonResponse_({
+          error: 'VendorLinksService.gs is missing from this Apps Script project. Copy it from the repo and redeploy.',
+        }, 500);
+      }
       var ec = e.parameter.eventCode || body.eventCode || '';
       var er = e.parameter.eventRowId || body.eventRowId || '';
       var opts = {
@@ -325,11 +333,16 @@ function handleVendorRequest_(vendorToken, action, body) {
 }
 
 function getActiveVendorLinkForEvent_(eventCode) {
-  var links = listVendorLinks_(eventCode);
-  for (var i = 0; i < links.length; i++) {
-    if (String(links[i].active).toLowerCase() === 'yes') {
-      return links[i];
+  if (typeof listVendorLinks_ !== 'function') return null;
+  try {
+    var links = listVendorLinks_(eventCode);
+    for (var i = 0; i < links.length; i++) {
+      if (String(links[i].active).toLowerCase() === 'yes') {
+        return links[i];
+      }
     }
+  } catch (err) {
+    Logger.log('getActiveVendorLinkForEvent_: ' + err);
   }
   return null;
 }
