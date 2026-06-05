@@ -12,6 +12,9 @@ export default defineConfig(({ mode }) => {
 
   return {
   base,
+  optimizeDeps: {
+    exclude: ['pdfjs-dist'],
+  },
   build: {
     chunkSizeWarningLimit: 3000,
     reportCompressedSize: false,

@@ -8,10 +8,7 @@
  * The parser uses regex patterns against the full PDF text and returns a
  * structured ParsedSOW object that can be used to pre-fill the event creation form.
  */
-import * as pdfjsLib from 'pdfjs-dist';
-// @ts-ignore — Vite resolves this at build time
-import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
+import { extractPdfText } from './pdfExtract';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -67,25 +64,6 @@ export interface ParsedSOW {
   suggestedTemplateIds: string[];
   /** Raw extracted text (for debugging) */
   rawText:            string;
-}
-
-// ─── PDF text extraction ───────────────────────────────────────────────────────
-
-export async function extractPdfText(file: File): Promise<string> {
-  const buffer = await file.arrayBuffer();
-  const pdf    = await pdfjsLib.getDocument({ data: buffer }).promise;
-  const parts: string[] = [];
-  for (let p = 1; p <= pdf.numPages; p++) {
-    const page    = await pdf.getPage(p);
-    const content = await page.getTextContent();
-    parts.push(
-      content.items
-        .map((item) => ('str' in item ? item.str : ''))
-        .join(' ')
-    );
-    parts.push('\n');
-  }
-  return parts.join('');
 }
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────

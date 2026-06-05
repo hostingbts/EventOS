@@ -10,12 +10,7 @@
  *   Departs  HH:MMam/pm
  *   To  CITY, COUNTRY     Arrives  HH:MMam/pm (+1 day)?
  */
-import * as pdfjsLib from 'pdfjs-dist';
-
-// Use Vite's ?url import for the worker to avoid bundling issues
-// @ts-ignore — Vite resolves this at build time
-import workerUrl from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
-pdfjsLib.GlobalWorkerOptions.workerSrc = workerUrl;
+import { extractPdfText } from './pdfExtract';
 
 export interface ParsedTicketResult {
   /** Display name: "Firstname Lastname" */
@@ -32,24 +27,6 @@ export interface ParsedTicketResult {
   departureFlight:  string;
   departureTime:    string;
   departureCity:    string;
-}
-
-// ─── PDF text extraction ──────────────────────────────────────────────────
-
-export async function extractPdfText(file: File): Promise<string> {
-  const buffer = await file.arrayBuffer();
-  const pdf    = await pdfjsLib.getDocument({ data: buffer }).promise;
-  const parts: string[] = [];
-  for (let p = 1; p <= pdf.numPages; p++) {
-    const page    = await pdf.getPage(p);
-    const content = await page.getTextContent();
-    parts.push(
-      content.items
-        .map((item) => ('str' in item ? item.str : ''))
-        .join(' ')
-    );
-  }
-  return parts.join('\n');
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────

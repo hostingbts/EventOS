@@ -7,6 +7,22 @@ import {
   updateExtraEvent,
 } from './mockStore';
 
+const DESIGNS_KEY = 'event_designs_v1';
+
+function purgeLocalTransferList(eventCode: string): void {
+  localStorage.removeItem(`tl-save-${eventCode.trim().toUpperCase()}`);
+}
+
+function purgeLocalEventDesign(eventCode: string): void {
+  try {
+    const raw = localStorage.getItem(DESIGNS_KEY);
+    if (!raw) return;
+    const store = JSON.parse(raw) as Record<string, unknown>;
+    delete store[eventCode];
+    localStorage.setItem(DESIGNS_KEY, JSON.stringify(store));
+  } catch { /* ignore */ }
+}
+
 const DELETED_ROW_IDS_KEY = 'deleted_mock_event_row_ids';
 
 function getDeletedRowIds(): Set<string> {
@@ -246,7 +262,7 @@ export function createMockEvent(payload: Partial<Event> & { code: string }): Eve
   return event;
 }
 
-export async function deleteMockEvent(rowId: string, code: string): Promise<void> {
+export function deleteMockEvent(rowId: string, code: string): void {
   const ev = findMockEvent({ rowId, code });
   if (!ev) throw new Error('Event not found');
 
@@ -254,9 +270,6 @@ export async function deleteMockEvent(rowId: string, code: string): Promise<void
   if (!removedExtra) markRowIdDeleted(rowId);
 
   purgeEventFromMockState(ev.code);
-
-  const { deleteTransferList } = await import('../utils/transferListStore');
-  const { deleteEventDesign } = await import('../utils/designStore');
-  deleteTransferList(ev.code);
-  deleteEventDesign(ev.code);
+  purgeLocalTransferList(ev.code);
+  purgeLocalEventDesign(ev.code);
 }
