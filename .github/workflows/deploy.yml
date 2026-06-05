@@ -41,7 +41,11 @@ jobs:
           CI: "true"
           NODE_OPTIONS: "--max-old-space-size=4096"
           VITE_BASE_URL: /EventOS/
-          VITE_USE_MOCK: "true"
+          # Demo mode by default (localStorage only). Set repo secrets
+          # VITE_API_URL + VITE_API_TOKEN to connect Google Apps Script.
+          VITE_USE_MOCK: ${{ secrets.VITE_API_URL && 'false' || 'true' }}
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+          VITE_API_TOKEN: ${{ secrets.VITE_API_TOKEN }}
           VITE_USE_PROXY: "false"
 
       - name: Deploy to GitHub Pages

@@ -8,14 +8,13 @@
   },
   "scripts": {
     "dev": "vite",
-    "prepare": "cp node_modules/pdfjs-dist/legacy/build/pdf.worker.min.mjs public/pdf.worker.min.mjs",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
     "jspdf": "^4.2.1",
-    "pdfjs-dist": "^6.0.227",
+    "unpdf": "^1.6.2",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-router-dom": "^7.15.1",

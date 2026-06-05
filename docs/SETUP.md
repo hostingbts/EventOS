@@ -142,3 +142,24 @@ Recipients: **Owner Email** + **EVENT_MANAGER_EMAIL**.
 | 401 Unauthorized | Match `API_TOKEN` and `VITE_API_TOKEN` |
 | No emails | Authorize MailApp on first run; confirm **Start Date** filled |
 | Demo mode | Leave `VITE_API_URL` empty — mock data loads automatically |
+| GitHub Pages shows **Demo** badge | Expected until you add repo secrets (see below) |
+| PDF upload fails on Safari (github.io) | Hard-refresh after deploy; site uses bundled `unpdf` (no separate worker) |
+
+## 8. GitHub Pages (hostingbts.github.io/EventOS)
+
+The site deploys automatically from `main` via `.github/workflows/deploy.yml`.
+
+### Demo mode (default)
+
+With no secrets configured, the build sets `VITE_USE_MOCK=true`. Events, tasks, uploads, and accounts live **only in that browser** (localStorage). You will see a **Demo** badge in the sidebar. This is not a broken backend — Google Sheets is simply not connected.
+
+### Connect the live site to Google Sheets
+
+1. Complete sections 1–2 above (Sheet + Apps Script web app URL + `API_TOKEN`).
+2. In GitHub: **Settings → Secrets and variables → Actions → New repository secret**
+   - `VITE_API_URL` — your Apps Script `/exec` URL
+   - `VITE_API_TOKEN` — same value as Script property `API_TOKEN`
+3. Push to `main` or re-run the **Deploy to GitHub Pages** workflow.
+4. Hard-refresh the site. The **Demo** badge should disappear and events load from your sheet.
+
+**CORS:** Apps Script must be deployed with access **Anyone** (token auth) or your org domain, or browser requests from `github.io` will fail.

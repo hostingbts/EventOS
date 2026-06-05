@@ -225,7 +225,14 @@ export function AppLayout() {
                       {ROLE_LABELS[role]}
                     </span>
                   )}
-                  {isMock && <span className="layout__demo">Demo</span>}
+                  {isMock && (
+                    <span
+                      className="layout__demo"
+                      title="Demo mode — events and accounts stay in this browser only; not synced to Google Sheets"
+                    >
+                      Demo
+                    </span>
+                  )}
                 </div>
               </div>
               <button
