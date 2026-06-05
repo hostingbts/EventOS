@@ -2,6 +2,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { useMockData } from '../api/client';
 import { ROLE_COLORS, ROLE_LABELS } from '../utils/roleStore';
+import { FloatingCalendarButton } from '../components/FloatingCalendarButton';
 import './AppLayout.css';
 
 /** SVG icons — inline so there's no extra dependency */
@@ -254,6 +255,7 @@ export function AppLayout() {
       <main className="layout__main">
         <Outlet />
       </main>
+      <FloatingCalendarButton />
     </div>
   );
 }
