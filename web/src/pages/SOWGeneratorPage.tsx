@@ -482,7 +482,7 @@ export function SOWGeneratorPage() {
                   value={assignee}
                   onChange={(e) => setAssignee(e.target.value)}
                 >
-                  <option value="">— No specific owner —</option>
+                  <option value="">— No assigned member —</option>
                   {user && (
                     <option value={user.email}>{user.name} (you)</option>
                   )}

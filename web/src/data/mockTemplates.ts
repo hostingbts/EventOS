@@ -18,7 +18,7 @@ const templates: TaskTemplate[] = [
       '2. Confirm attendee count, event format, and special requirements.\n' +
       '3. Upload the signed SOW PDF to this task.\n' +
       '4. Flag any missing information back to PSA before proceeding.\n\n' +
-      'Owner: {{owner_email}} · Event dates: {{dates}} · Venue: {{venue}}',
+      'Assigned member: {{owner_email}} · Event dates: {{dates}} · Venue: {{venue}}',
     defaultAssigneeEmail: '',
     defaultAssigneeName: '',
     sortOrder: 1,

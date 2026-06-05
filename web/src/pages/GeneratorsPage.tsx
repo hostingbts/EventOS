@@ -83,7 +83,7 @@ const SOW_GENERATOR: GeneratorCard = {
     'Auto-extracts event code, dates, location, PAX from PDF',
     'Detects included SOW packages (Venue, LEM, Language, Travel…)',
     'Pre-selects matching task templates based on packages',
-    'Assign event owner to any team member',
+    'Assign an event to any team member',
     'Google Drive folder structure preview',
   ],
   href:  '/sow-generator',

@@ -23,7 +23,7 @@ export const KNOWN_VARIABLES: { name: string; description: string; example: stri
   { name: 'start_date', description: 'Start date (ISO)', example: '2026-05-01' },
   { name: 'end_date', description: 'End date (ISO)', example: '2026-05-02' },
   { name: 'month', description: 'Month + year label', example: 'May 2026' },
-  { name: 'owner_email', description: 'Event owner email', example: 'sam@team.org' },
+  { name: 'owner_email', description: 'Assigned member email', example: 'sam@team.org' },
   { name: 'vendor_name', description: 'Vendor company/contact (if scoped)', example: 'ACME Audio' },
   { name: 'vendor_category', description: 'Vendor category (if scoped)', example: 'AV' },
   { name: 'per_diem_daily_rate', description: 'M&IE daily rate in USD (set on event)', example: '35' },

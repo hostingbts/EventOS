@@ -300,7 +300,7 @@ function MonthSection({
         <div className="dashboard__list-head">
           <span className="dlh-code">Event</span>
           <span className="dlh-location">Location · Dates</span>
-          <span className="dlh-owner">Owner</span>
+          <span className="dlh-owner">Assigned member</span>
           <span className="dlh-progress">Readiness</span>
           <span className="dlh-tasks">Tasks</span>
           <span className="dlh-status">Status</span>

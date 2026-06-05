@@ -250,7 +250,7 @@ export function EventDetail({ event, onUpdated }: Props) {
       </section>
 
       {ev.ownerEmail && (
-        <p className="detail__meta">Owner: {ev.ownerEmail}</p>
+        <p className="detail__meta">Assigned member: {ev.ownerEmail}</p>
       )}
     </div>
   );

@@ -185,7 +185,7 @@ export function NewProjectModal({ actorEmail, onCreated, onClose }: Props) {
               </label>
               {cloneSource && (
                 <p className="new-project__clone-hint">
-                  Copying venue, owner, notes, and templates from <strong>{cloneSource.code}</strong>
+                  Copying venue, assigned member, notes, and templates from <strong>{cloneSource.code}</strong>
                   . Adjust the project code and dates below.
                 </p>
               )}
@@ -229,7 +229,7 @@ export function NewProjectModal({ actorEmail, onCreated, onClose }: Props) {
               <input value={venue} onChange={(e) => setVenue(e.target.value)} placeholder="Optional" />
             </label>
             <label className="new-project__full">
-              Owner email
+              Assigned member email
               <input
                 type="email"
                 value={ownerEmail}

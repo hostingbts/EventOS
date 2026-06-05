@@ -550,7 +550,7 @@
   background: var(--surface-hover);
 }
 
-/* Owner */
+/* Assigned member */
 .dl-owner {
   min-width: 0;
   display: flex;
