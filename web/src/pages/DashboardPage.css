@@ -445,7 +445,7 @@
   padding: 0 0.5rem 0 0;
   border-bottom: 1px solid var(--border-subtle);
   min-height: 35px;
-  height: 30px;
+  height: 35px;
   transition: background 0.12s;
   flex: 1;
   min-width: 0;
