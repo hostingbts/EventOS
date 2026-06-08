@@ -5,6 +5,7 @@ import { useUser } from '../context/UserContext';
 import type { Event, EventHealth } from '../types';
 import { NewProjectModal } from '../components/NewProjectModal';
 import { summariseHealth } from '../utils/health';
+import { getEventDateRange } from '../utils/calendarDates';
 import './DashboardPage.css';
 
 type Filter = 'all' | 'attention' | 'missing-sow' | 'missing-venue' | 'critical';
@@ -24,6 +25,33 @@ function parseDate(s: string | undefined): Date | null {
   if (!s) return null;
   const d = new Date(s);
   return isNaN(d.getTime()) ? null : d;
+}
+
+/** Dashboard-only label, e.g. "June 15-17, 2026". */
+function formatDashboardDates(ev: Event): string {
+  const range = getEventDateRange(ev);
+  if (!range) return ev.dates?.trim() || '—';
+
+  const start = parseDate(range.start.includes('T') ? range.start : `${range.start}T12:00:00`);
+  const end = parseDate(range.end.includes('T') ? range.end : `${range.end}T12:00:00`);
+  if (!start) return ev.dates?.trim() || '—';
+
+  const monthLong = (d: Date) =>
+    d.toLocaleDateString('en-US', { month: 'long' });
+
+  if (!end || start.toDateString() === end.toDateString()) {
+    return `${monthLong(start)} ${start.getDate()}, ${start.getFullYear()}`;
+  }
+
+  if (start.getMonth() === end.getMonth() && start.getFullYear() === end.getFullYear()) {
+    return `${monthLong(start)} ${start.getDate()}-${end.getDate()}, ${start.getFullYear()}`;
+  }
+
+  if (start.getFullYear() === end.getFullYear()) {
+    return `${monthLong(start)} ${start.getDate()} – ${monthLong(end)} ${end.getDate()}, ${start.getFullYear()}`;
+  }
+
+  return `${monthLong(start)} ${start.getDate()}, ${start.getFullYear()} – ${monthLong(end)} ${end.getDate()}, ${end.getFullYear()}`;
 }
 
 function isCompleted(ev: Event, archivedCodes: Set<string>): boolean {
@@ -161,7 +189,7 @@ function EventRow({
         <span className="dl-location">
           <span className="dl-location__place">{ev.location || '—'}</span>
           <span className="dl-location__dates">
-            {ev.dates || '—'}
+            {formatDashboardDates(ev)}
             {happening && (
               <span className="dl-badge dl-badge--happening">● Now</span>
             )}
