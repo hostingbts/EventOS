@@ -4,6 +4,8 @@ import { TASK_STATUSES, updateTask, uploadTaskFile, deleteTaskFile } from '../..
 import { useUser } from '../../context/UserContext';
 import { getCategory } from '../../utils/categories';
 import { getTransferListMeta } from '../../utils/transferListStore';
+import { formatIsoDate } from '../../utils/dateFormat';
+import { DateInput } from '../DateInput';
 import { CommentThread } from '../collaboration/CommentThread';
 import { TaskFileUpload } from './TaskFileUpload';
 import './TaskPanel.css';
@@ -71,7 +73,7 @@ function daysLabel(dateStr: string): string {
   today.setHours(0, 0, 0, 0);
   d.setHours(0, 0, 0, 0);
   const diff = Math.round((d.getTime() - today.getTime()) / 86_400_000);
-  const formatted = d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  const formatted = formatIsoDate(dateStr);
   if (diff < 0) return `${formatted} — ${Math.abs(diff)}d overdue`;
   if (diff === 0) return `${formatted} — Due today`;
   if (diff <= 3) return `${formatted} — In ${diff}d`;
@@ -151,9 +153,9 @@ export function TaskPanel({
     onTaskUpdated(updated);
   }
 
-  async function handleDueDateChange(e: React.ChangeEvent<HTMLInputElement>) {
+  async function handleDueDateChange(iso: string) {
     if (!user) return;
-    const updated = await updateTask(t.taskId, { dueDate: e.target.value }, user.email);
+    const updated = await updateTask(t.taskId, { dueDate: iso }, user.email);
     onTaskUpdated(updated);
   }
 
@@ -228,10 +230,12 @@ export function TaskPanel({
 
         <label className="task-panel__control-label">
           Due date
-          <input
-            type="date"
+          <DateInput
             value={t.dueDate || ''}
-            onChange={handleDueDateChange}
+            onChange={(iso) => {
+              if (!user) return;
+              void handleDueDateChange(iso);
+            }}
             className={dueOverdue ? 'overdue' : ''}
             disabled={!user}
           />

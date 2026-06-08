@@ -1,5 +1,7 @@
 /** Calendar grid helpers for the team timeline view. */
 
+import { parseToIsoDate } from './dateFormat';
+
 export interface CalendarDay {
   date: Date;
   iso: string;
@@ -48,6 +50,8 @@ export function parseIsoDate(s: string | undefined): Date | null {
 export function normalizeIsoDate(s: string | undefined): string | null {
   if (!s?.trim()) return null;
   const t = s.trim();
+  const fromDisplay = parseToIsoDate(t);
+  if (fromDisplay) return fromDisplay;
   if (/^\d{4}-\d{2}-\d{2}/.test(t)) return t.slice(0, 10);
   const d = parseIsoDate(t);
   if (d) return toIsoDate(d);
@@ -81,6 +85,16 @@ function parseDatesLabel(
 ): ResolvedEventDates | null {
   const cleaned = dates.replace(/[\u2013\u2014]/g, '-').trim();
   if (!cleaned) return null;
+
+  const displayRange = cleaned.match(/^(\d{1,2})-(\d{1,2})-(\d{4})\s*-\s*(\d{1,2})-(\d{1,2})-(\d{4})$/);
+  if (displayRange) {
+    const start = parseToIsoDate(`${displayRange[1]}-${displayRange[2]}-${displayRange[3]}`);
+    const end = parseToIsoDate(`${displayRange[4]}-${displayRange[5]}-${displayRange[6]}`);
+    if (start && end) return { start, end };
+  }
+
+  const displaySingle = parseToIsoDate(cleaned);
+  if (displaySingle) return { start: displaySingle, end: displaySingle };
 
   const rangeMatch = cleaned.match(/^([A-Za-z]+)\s+(\d{1,2})\s*-\s*(\d{1,2})(?:,\s*(20\d{2}))?$/);
   if (rangeMatch) {

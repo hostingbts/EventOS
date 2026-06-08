@@ -233,6 +233,11 @@ export function getMemberByEmail(email: string): OrgMember | null {
   return getMembers().find((m) => m.email.toLowerCase() === email.toLowerCase()) ?? null;
 }
 
+/** Active and invited org members who can be assigned to events. */
+export function getAssignableMembers(): OrgMember[] {
+  return getMembers().filter((m) => m.status !== 'inactive');
+}
+
 /**
  * Upserts a member in the local cache and, in real mode, fires a background
  * write to GAS (non-blocking so the UI stays responsive).
@@ -339,8 +344,16 @@ export function can(role: AppRole | null | undefined, cap: AppCapability): boole
 export async function fetchAndCacheMembers(): Promise<void> {
   const { apiMembersList } = await import('../api/client');
   try {
-    const members = await apiMembersList();
-    if (members.length > 0) saveMembers(members);
+    const remote = await apiMembersList();
+    if (remote.length === 0) return;
+
+    const local = getMembers();
+    const seen = new Set(remote.map((m) => m.email.toLowerCase()));
+    const merged = [
+      ...remote,
+      ...local.filter((m) => !seen.has(m.email.toLowerCase())),
+    ];
+    saveMembers(merged);
   } catch (err) {
     console.warn('[roleStore] Failed to fetch members from server:', err);
   }

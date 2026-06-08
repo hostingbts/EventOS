@@ -14,6 +14,7 @@ import { fetchEvents } from '../api/client';
 import { parseTicketPdf } from '../utils/parseTicketPdf';
 import { useUser } from '../context/UserContext';
 import type { Event } from '../types';
+import { DateInput } from '../components/DateInput';
 import './TransferListPage.css';
 
 // ─── Types (exported so exportTransferList can import them) ───────────────
@@ -144,6 +145,8 @@ interface RowProps {
 function TravelerRow({ t, idx, isOpen, onToggle, onUpdate, onRemove }: RowProps) {
   const u = (field: keyof TravelerEntry) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     onUpdate(t.id, { [field]: e.target.value });
+  const setField = (field: keyof TravelerEntry) => (value: string) =>
+    onUpdate(t.id, { [field]: value });
 
   return (
     <div className={`tl-traveler ${isOpen ? 'tl-traveler--open' : ''}`}>
@@ -202,7 +205,7 @@ function TravelerRow({ t, idx, isOpen, onToggle, onUpdate, onRemove }: RowProps)
             <div className="tl-grid-3">
               <label>
                 Arrival date
-                <input type="date" value={t.arrivalDate} onChange={u('arrivalDate')} />
+                <DateInput value={t.arrivalDate} onChange={setField('arrivalDate')} />
               </label>
               <label>
                 Flight code
@@ -220,7 +223,7 @@ function TravelerRow({ t, idx, isOpen, onToggle, onUpdate, onRemove }: RowProps)
             <div className="tl-grid-3">
               <label>
                 Departure date
-                <input type="date" value={t.departureDate} onChange={u('departureDate')} />
+                <DateInput value={t.departureDate} onChange={setField('departureDate')} />
               </label>
               <label>
                 Flight code

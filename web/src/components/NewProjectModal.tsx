@@ -6,33 +6,14 @@ import {
   fetchWorkspace,
 } from '../api/client';
 import type { Event, TaskTemplateWithFiles } from '../types';
+import { formatDateRange, formatMonthYear } from '../utils/dateFormat';
+import { DateInput } from './DateInput';
 import './NewProjectModal.css';
 
 interface Props {
   actorEmail: string;
   onCreated: (eventCode: string) => void;
   onClose: () => void;
-}
-
-function monthLabel(dateStr: string): string {
-  if (!dateStr) return '';
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return '';
-  return d.toLocaleString('en-US', { month: 'long', year: 'numeric' });
-}
-
-function humanDates(start: string, end: string): string {
-  if (!start) return '';
-  const s = new Date(start);
-  if (isNaN(s.getTime())) return '';
-  const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
-  if (!end || end === start) return s.toLocaleDateString('en-US', opts);
-  const e = new Date(end);
-  if (isNaN(e.getTime())) return s.toLocaleDateString('en-US', opts);
-  if (s.getMonth() === e.getMonth()) {
-    return `${s.toLocaleDateString('en-US', opts)}-${e.getDate()}`;
-  }
-  return `${s.toLocaleDateString('en-US', opts)} - ${e.toLocaleDateString('en-US', opts)}`;
 }
 
 export function NewProjectModal({ actorEmail, onCreated, onClose }: Props) {
@@ -127,8 +108,8 @@ export function NewProjectModal({ actorEmail, onCreated, onClose }: Props) {
           location: location.trim(),
           startDate,
           endDate: endDate || startDate,
-          dates: humanDates(startDate, endDate),
-          monthGroup: monthLabel(startDate),
+          dates: formatDateRange(startDate, endDate),
+          monthGroup: formatMonthYear(startDate),
           venue: venue.trim(),
           ownerEmail: ownerEmail.trim(),
           notes: notes.trim(),
@@ -213,16 +194,11 @@ export function NewProjectModal({ actorEmail, onCreated, onClose }: Props) {
             </label>
             <label>
               Start date
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+              <DateInput value={startDate} onChange={setStartDate} />
             </label>
             <label>
               End date
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                min={startDate}
-              />
+              <DateInput value={endDate} min={startDate} onChange={setEndDate} />
             </label>
             <label className="new-project__full">
               Venue

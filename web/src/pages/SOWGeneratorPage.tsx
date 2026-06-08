@@ -9,11 +9,18 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
-import { createEvent, fetchTeamOverview, fetchTemplatesWithFiles, updateTask, uploadTaskFile, applyTemplates } from '../api/client';
+import { createEvent, fetchTemplatesWithFiles, updateTask, uploadTaskFile, applyTemplates } from '../api/client';
 import { parseSOWPdf } from '../utils/parseSOW';
 import type { ParsedSOW } from '../utils/parseSOW';
-import type { TaskTemplateWithFiles, TeamMember } from '../types';
+import type { TaskTemplateWithFiles } from '../types';
 import { findSowTask, isTemplateSuggested, resolveTemplateIds } from '../utils/templateMatch';
+import { formatDateRange, formatMonthYear } from '../utils/dateFormat';
+import { DateInput } from '../components/DateInput';
+import {
+  fetchAndCacheMembers,
+  getAssignableMembers,
+  type OrgMember,
+} from '../utils/roleStore';
 import './SOWGeneratorPage.css';
 
 // ─── Drive folder structure preview ──────────────────────────────────────────
@@ -80,21 +87,32 @@ export function SOWGeneratorPage() {
   const [templates,         setTemplates]         = useState<TaskTemplateWithFiles[]>([]);
   const [selectedTemplates, setSelectedTemplates] = useState<Set<string>>(new Set());
 
-  // ── Team members ───────────────────────────────────────────────────────────
-  const [members, setMembers] = useState<TeamMember[]>([]);
+  // ── Team members (org roster — not task assignees) ───────────────────────
+  const [members, setMembers] = useState<OrgMember[]>(() => getAssignableMembers());
 
   // ── Generation ─────────────────────────────────────────────────────────────
   const [generating, setGenerating] = useState(false);
   const [genError,   setGenError]   = useState('');
 
-  // ── Load templates + team on mount ────────────────────────────────────────
+  const refreshMembers = () => setMembers(getAssignableMembers());
+
+  // ── Load templates + org members on mount ─────────────────────────────────
   useEffect(() => {
     fetchTemplatesWithFiles()
       .then(setTemplates)
       .catch(() => {});
-    fetchTeamOverview()
-      .then((ov) => setMembers(ov.members))
-      .catch(() => {});
+    refreshMembers();
+    fetchAndCacheMembers().finally(refreshMembers);
+
+    const onMembersUpdated = (e: StorageEvent) => {
+      if (e.key === 'org_members_v1') refreshMembers();
+    };
+    window.addEventListener('storage', onMembersUpdated);
+    window.addEventListener('focus', refreshMembers);
+    return () => {
+      window.removeEventListener('storage', onMembersUpdated);
+      window.removeEventListener('focus', refreshMembers);
+    };
   }, []);
 
   // Map SOW package suggestions → real template IDs once templates are loaded
@@ -160,29 +178,6 @@ export function SOWGeneratorPage() {
     });
   }
 
-  // ── Build human dates string ───────────────────────────────────────────────
-  function humanDates(start: string, end: string): string {
-    if (!start) return '';
-    const s = new Date(start + 'T12:00:00');
-    if (isNaN(s.getTime())) return '';
-    const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
-    if (!end || end === start)
-      return s.toLocaleDateString('en-US', { ...opts, year: 'numeric' });
-    const e = new Date(end + 'T12:00:00');
-    if (isNaN(e.getTime()))
-      return s.toLocaleDateString('en-US', { ...opts, year: 'numeric' });
-    if (s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear())
-      return `${s.toLocaleDateString('en-US', opts)}–${e.getDate()}, ${s.getFullYear()}`;
-    return `${s.toLocaleDateString('en-US', opts)} – ${e.toLocaleDateString('en-US', { ...opts, year: 'numeric' })}`;
-  }
-
-  function monthLabel(dateStr: string): string {
-    if (!dateStr) return '';
-    const d = new Date(dateStr + 'T12:00:00');
-    if (isNaN(d.getTime())) return '';
-    return d.toLocaleString('en-US', { month: 'long', year: 'numeric' });
-  }
-
   // ── Generate event ─────────────────────────────────────────────────────────
   async function handleGenerate(e: React.FormEvent) {
     e.preventDefault();
@@ -190,7 +185,7 @@ export function SOWGeneratorPage() {
     setGenerating(true);
     setGenError('');
     try {
-      const dates = humanDates(startDate, endDate);
+      const dates = formatDateRange(startDate, endDate);
       const templateIds = resolveTemplateIds(Array.from(selectedTemplates), templates);
       let result = await createEvent(
         {
@@ -199,7 +194,7 @@ export function SOWGeneratorPage() {
           startDate,
           endDate:     endDate || startDate,
           dates,
-          monthGroup:  monthLabel(startDate),
+          monthGroup:  formatMonthYear(startDate),
           venue:       venue.trim(),
           ownerEmail:  assignee.trim() || user?.email || '',
           notes:       [title ? `Meeting: ${title}` : '', pax ? `PAX: ${pax}` : '', language ? `Language: ${language}` : '', notes].filter(Boolean).join('\n'),
@@ -273,7 +268,7 @@ export function SOWGeneratorPage() {
     : [];
 
   const driveName = code && location
-    ? `${code} – ${location}${startDate ? ' – ' + humanDates(startDate, endDate) : ''}`
+    ? `${code} – ${location}${startDate ? ' – ' + formatDateRange(startDate, endDate) : ''}`
     : '{Event Code} – {City} – {Dates}';
 
   return (
@@ -390,21 +385,19 @@ export function SOWGeneratorPage() {
                 </label>
                 <label className="sow-label">
                   Start date
-                  <input
+                  <DateInput
                     className="sow-input"
-                    type="date"
                     value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
+                    onChange={setStartDate}
                   />
                 </label>
                 <label className="sow-label">
                   End date
-                  <input
+                  <DateInput
                     className="sow-input"
-                    type="date"
                     value={endDate}
                     min={startDate}
-                    onChange={(e) => setEndDate(e.target.value)}
+                    onChange={setEndDate}
                   />
                 </label>
               </div>
@@ -524,10 +517,11 @@ export function SOWGeneratorPage() {
                     <option value={user.email}>{user.name} (you)</option>
                   )}
                   {members
-                    .filter((m) => m.email !== user?.email)
+                    .filter((m) => m.email.toLowerCase() !== user?.email?.toLowerCase())
                     .map((m) => (
-                      <option key={m.email} value={m.email}>
+                      <option key={m.id} value={m.email}>
                         {m.name} — {m.email}
+                        {m.status === 'invited' ? ' (invited)' : ''}
                       </option>
                     ))}
                 </select>
@@ -564,7 +558,7 @@ export function SOWGeneratorPage() {
             <div className="sow-preview-card__name">{title || location || 'New Event'}</div>
             <div className="sow-preview-card__meta">
               {location && <span>📍 {location}</span>}
-              {startDate && <span>📅 {humanDates(startDate, endDate)}</span>}
+              {startDate && <span>📅 {formatDateRange(startDate, endDate)}</span>}
               {pax && <span>👥 {pax} PAX</span>}
               {language && <span>🗣 {language}</span>}
             </div>
@@ -572,7 +566,7 @@ export function SOWGeneratorPage() {
               <div className="sow-preview-card__assignee">
                 <span className="sow-preview-card__assignee-label">Assigned to</span>
                 <span className="sow-preview-card__assignee-val">
-                  {members.find((m) => m.email === assignee)?.name || assignee}
+                  {members.find((m) => m.email.toLowerCase() === assignee.toLowerCase())?.name || assignee}
                 </span>
               </div>
             )}

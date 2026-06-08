@@ -9,6 +9,7 @@
  * structured ParsedSOW object that can be used to pre-fill the event creation form.
  */
 import { extractPdfText } from './pdfExtract';
+import { formatDateRange } from './dateFormat';
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -88,21 +89,9 @@ function parseMMDDYY(raw: string): string {
   return `20${yy}-${mm}-${dd}`;
 }
 
-/** Convert "MM/DD/YY" dates to "Mon DD – Mon DD YYYY" human string */
+/** Convert ISO dates to dd-MM-yyyy display range for the sheet */
 function humanDates(start: string, end: string): string {
-  if (!start) return '';
-  const s = new Date(start + 'T12:00:00');
-  if (isNaN(s.getTime())) return '';
-  const opts: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric' };
-  if (!end || end === start) {
-    return s.toLocaleDateString('en-US', { ...opts, year: 'numeric' });
-  }
-  const e = new Date(end + 'T12:00:00');
-  if (isNaN(e.getTime())) return s.toLocaleDateString('en-US', { ...opts, year: 'numeric' });
-  if (s.getMonth() === e.getMonth() && s.getFullYear() === e.getFullYear()) {
-    return `${s.toLocaleDateString('en-US', opts)}–${e.getDate()}, ${s.getFullYear()}`;
-  }
-  return `${s.toLocaleDateString('en-US', opts)} – ${e.toLocaleDateString('en-US', { ...opts, year: 'numeric' })}`;
+  return formatDateRange(start, end);
 }
 
 /** Extract just the city part from "City, Country" */

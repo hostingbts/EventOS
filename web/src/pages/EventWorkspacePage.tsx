@@ -123,7 +123,7 @@ export function EventWorkspacePage() {
       <header className="workspace__header">
         <div>
           <h1>{event.code} — {event.location}</h1>
-          <p className="workspace__header-sub">{event.monthGroup} · {event.dates}</p>
+          <p className="workspace__header-sub">{event.dates}</p>
         </div>
         <div className="workspace__header-actions">
           {event.driveFolderUrl && (

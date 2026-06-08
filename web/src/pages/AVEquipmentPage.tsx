@@ -11,6 +11,7 @@ import { Link } from 'react-router-dom';
 import { fetchEvents } from '../api/client';
 import { exportAVEquipment } from '../utils/exportAVEquipment';
 import type { Event } from '../types';
+import { formatIsoDate } from '../utils/dateFormat';
 import './AVEquipmentPage.css';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -598,7 +599,5 @@ function resolvePreviewAmount(item: AVItemState): number {
 }
 
 function formatEventDate(dateStr: string): string {
-  if (!dateStr) return '';
-  const d = new Date(dateStr + 'T12:00:00');
-  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric' });
+  return formatIsoDate(dateStr);
 }

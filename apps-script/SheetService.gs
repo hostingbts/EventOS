@@ -132,7 +132,22 @@ function rowToEvent_(row, rowNum, map) {
   function cell(name) {
     var c = colIndex_(map, name);
     if (!c) return '';
-    return row[c - 1] != null ? String(row[c - 1]) : '';
+    var v = row[c - 1];
+    if (v == null || v === '') return '';
+    if (Object.prototype.toString.call(v) === '[object Date]') {
+      var d = v;
+      if (isNaN(d.getTime())) return '';
+      if (name === CONFIG.COLS.MONTH_GROUP) {
+        return monthGroupFromDate_(d);
+      }
+      if (name === CONFIG.COLS.START_DATE || name === CONFIG.COLS.END_DATE) {
+        var tz = Session.getScriptTimeZone() || 'UTC';
+        return Utilities.formatDate(d, tz, 'yyyy-MM-dd');
+      }
+      var tz2 = Session.getScriptTimeZone() || 'UTC';
+      return Utilities.formatDate(d, tz2, 'yyyy-MM-dd');
+    }
+    return String(v);
   }
 
   var code = cell(CONFIG.COLS.CODE);

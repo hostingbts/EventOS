@@ -7,6 +7,7 @@
  */
 import type { Task } from '../../types';
 import { getCategory, OPS_CATEGORIES } from '../../utils/categories';
+import { formatIsoDate } from '../../utils/dateFormat';
 import './OpsTaskList.css';
 
 const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
@@ -34,7 +35,7 @@ function DueBadge({ dueDate, done }: { dueDate: string; done: boolean }) {
   if (days <= 3) return <span className="ops-due ops-due--soon">In {days}d</span>;
   return (
     <span className="ops-due ops-due--ok">
-      {new Date(dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+      {formatIsoDate(dueDate)}
     </span>
   );
 }
@@ -211,7 +212,7 @@ export function OpsTaskList({
                         <DueBadge dueDate={task.dueDate} done={isDone} />
                         {isDone && task.completedAt && (
                           <span className="ops-due ops-due--completed">
-                            ✓ {new Date(task.completedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                            ✓ {formatIsoDate(task.completedAt.slice(0, 10))}
                           </span>
                         )}
                       </span>

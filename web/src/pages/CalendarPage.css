@@ -1,5 +1,6 @@
 .cal {
-  max-width: 100%;
+  width: 100%;
+  min-width: 0;
 }
 
 .cal__loading {
@@ -79,16 +80,21 @@
 
 /* Scrollable timeline board */
 .cal__board-wrap {
+  width: 100%;
+  max-width: 100%;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-sm);
-  overflow: auto;
+  overflow-x: auto;
+  overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
 }
 
 .cal__board {
-  min-width: min-content;
+  width: max-content;
+  min-width: 100%;
 }
 
 .cal__head-row {

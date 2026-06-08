@@ -3,7 +3,7 @@ import type { Event, EventUpdates } from '../types';
 import { StatusChip } from './StatusChip';
 import { updateEvent } from '../api/client';
 import { useUser } from '../context/UserContext';
-import { getMembers } from '../utils/roleStore';
+import { getAssignableMembers } from '../utils/roleStore';
 import './EventDetail.css';
 
 const LEM_OPTIONS = ['Open', 'Closed', 'Full/Connectmice'];
@@ -28,10 +28,7 @@ export function EventDetail({ event, onUpdated }: Props) {
   const [error, setError] = useState<string | null>(null);
 
   const canAssign = can('events.assign');
-  const assignableMembers = useMemo(
-    () => getMembers().filter((m) => m.status === 'active'),
-    [],
-  );
+  const assignableMembers = useMemo(() => getAssignableMembers(), []);
 
   if (!event) {
     return (
@@ -72,7 +69,6 @@ export function EventDetail({ event, onUpdated }: Props) {
         <p>
           {ev.location} · {ev.dates}
         </p>
-        {ev.monthGroup && <span className="detail__month">{ev.monthGroup}</span>}
       </header>
 
       {error && <p className="detail__error">{error}</p>}

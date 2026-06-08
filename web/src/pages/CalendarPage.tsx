@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchEvents, fetchTeamOverview } from '../api/client';
 import type { Event, TeamMember } from '../types';
@@ -103,6 +103,7 @@ export function CalendarPage() {
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [month, setMonth] = useState(() => startOfMonth(new Date()));
   const [loading, setLoading] = useState(true);
+  const boardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -133,6 +134,18 @@ export function CalendarPage() {
   const undatedCount = allEvents.length - calendarEvents.length;
 
   const monthTitle = month.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const boardWidth = LABEL_COL_W + days.length * DAY_COL_W;
+
+  // Scroll timeline so today (or month start) is visible
+  useEffect(() => {
+    const el = boardRef.current;
+    if (!el || days.length === 0) return;
+    const todayIdx = days.findIndex((d) => d.isToday);
+    const targetIdx = todayIdx >= 0 ? todayIdx : 0;
+    const dayLeft = LABEL_COL_W + targetIdx * DAY_COL_W;
+    const centered = dayLeft - (el.clientWidth - DAY_COL_W) / 2;
+    el.scrollLeft = Math.max(0, centered);
+  }, [month, days]);
 
   function prevMonth() {
     setMonth((m) => new Date(m.getFullYear(), m.getMonth() - 1, 1, 12, 0, 0, 0));
@@ -173,8 +186,8 @@ export function CalendarPage() {
         </div>
       </header>
 
-      <div className="cal__board-wrap">
-        <div className="cal__board" style={{ minWidth: LABEL_COL_W + days.length * DAY_COL_W }}>
+      <div className="cal__board-wrap" ref={boardRef}>
+        <div className="cal__board" style={{ width: boardWidth }}>
           {/* Day header row */}
           <div className="cal__head-row" style={{ gridTemplateColumns: gridCols }}>
             <div className="cal__head-label" />

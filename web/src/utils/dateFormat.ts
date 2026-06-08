@@ -1,0 +1,71 @@
+/** Display format for dates in forms and UI. Internal storage stays ISO (yyyy-MM-dd). */
+
+export const DATE_INPUT_PLACEHOLDER = 'dd-MM-yyyy';
+
+const ISO_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
+const DISPLAY_RE = /^(\d{1,2})-(\d{1,2})-(\d{4})$/;
+
+function pad2(n: number): string {
+  return String(n).padStart(2, '0');
+}
+
+function isValidIsoDate(iso: string): boolean {
+  const m = iso.match(ISO_RE);
+  if (!m) return false;
+  const y = Number(m[1]);
+  const mo = Number(m[2]);
+  const d = Number(m[3]);
+  const dt = new Date(`${iso}T12:00:00`);
+  return (
+    !isNaN(dt.getTime()) &&
+    dt.getFullYear() === y &&
+    dt.getMonth() + 1 === mo &&
+    dt.getDate() === d
+  );
+}
+
+/** ISO yyyy-MM-dd → dd-MM-yyyy */
+export function formatIsoDate(iso: string | undefined): string {
+  if (!iso?.trim()) return '';
+  const t = iso.trim();
+  const m = t.match(ISO_RE);
+  if (m) return `${m[3]}-${m[2]}-${m[1]}`;
+  const d = new Date(t.includes('T') ? t : `${t}T12:00:00`);
+  if (isNaN(d.getTime())) return t;
+  return `${pad2(d.getDate())}-${pad2(d.getMonth() + 1)}-${d.getFullYear()}`;
+}
+
+/** dd-MM-yyyy (or yyyy-MM-dd) → ISO yyyy-MM-dd */
+export function parseToIsoDate(input: string): string | null {
+  const t = input.trim();
+  if (!t) return null;
+
+  const display = t.match(DISPLAY_RE);
+  if (display) {
+    const iso = `${display[3]}-${pad2(Number(display[2]))}-${pad2(Number(display[1]))}`;
+    return isValidIsoDate(iso) ? iso : null;
+  }
+
+  if (ISO_RE.test(t) && isValidIsoDate(t)) return t;
+
+  const d = new Date(t.includes('T') ? t : `${t}T12:00:00`);
+  if (isNaN(d.getTime())) return null;
+  const iso = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+  return isValidIsoDate(iso) ? iso : null;
+}
+
+/** Event date range label stored on the sheet, e.g. 15-06-2026 – 17-06-2026 */
+export function formatDateRange(startIso: string, endIso: string): string {
+  if (!startIso) return '';
+  const start = formatIsoDate(startIso);
+  if (!endIso || endIso === startIso) return start;
+  return `${start} – ${formatIsoDate(endIso)}`;
+}
+
+/** Month grouping label, e.g. June 2026 */
+export function formatMonthYear(iso: string): string {
+  if (!iso) return '';
+  const d = new Date(iso.includes('T') ? iso : `${iso}T12:00:00`);
+  if (isNaN(d.getTime())) return '';
+  return d.toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+}
