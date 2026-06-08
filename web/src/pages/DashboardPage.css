@@ -310,7 +310,7 @@
   display: flex;
   align-items: center;
   position: relative;
-  min-height: 30px;
+  min-height: 35px;
 }
 
 /* Imminent / happening highlight */
@@ -422,7 +422,7 @@
   display: grid;
   grid-template-columns: 115px 1fr 150px 160px 160px 100px;
   padding: 0 1rem 0 1.25rem;
-  min-height: 30px;
+  min-height: 35px;
   align-items: center;
   background: var(--surface-hover);
   border-bottom: 1px solid var(--border);
@@ -444,7 +444,7 @@
   color: inherit;
   padding: 0 0.5rem 0 0;
   border-bottom: 1px solid var(--border-subtle);
-  min-height: 30px;
+  min-height: 35px;
   height: 30px;
   transition: background 0.12s;
   flex: 1;
