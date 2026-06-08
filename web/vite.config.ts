@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => {
       : [
           VitePWA({
             registerType: 'autoUpdate',
-            includeAssets: ['favicon.svg', 'logo.png'],
+            includeAssets: ['favicon.png', 'favicon-32.png', 'logo-icon.png', 'logo-wordmark.png', 'apple-touch-icon.png'],
             manifest: {
               name: 'EventOS',
               short_name: 'EventOS',

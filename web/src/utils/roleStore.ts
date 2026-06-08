@@ -20,6 +20,8 @@ export type AppCapability =
   | 'events.view'
   | 'events.create'
   | 'events.edit'
+  | 'events.delete'
+  | 'events.assign'
   | 'tasks.view'
   | 'tasks.manage'
   | 'task_templates'
@@ -35,24 +37,114 @@ export interface CapabilityMeta {
   key: AppCapability;
   label: string;
   group: string;
+  /** Short help text on the Role Permissions page */
+  description?: string;
   /** Admin always has this — cannot be toggled */
   adminLocked?: boolean;
 }
 
+/** Display order for permission groups on the Role Permissions tab. */
+export const CAPABILITY_GROUPS = [
+  'Events',
+  'Tasks',
+  'Team',
+  'Templates',
+  'Tools',
+  'Admin',
+] as const;
+
 export const CAPABILITY_LIST: CapabilityMeta[] = [
-  { key: 'events.view',        label: 'View events & workspaces',    group: 'Events' },
-  { key: 'events.create',      label: 'Create new events',           group: 'Events' },
-  { key: 'events.edit',        label: 'Edit event details',          group: 'Events' },
-  { key: 'tasks.view',         label: 'View tasks',                  group: 'Tasks' },
-  { key: 'tasks.manage',       label: 'Create / update tasks',       group: 'Tasks' },
-  { key: 'task_templates',     label: 'Task Templates page',         group: 'Tasks' },
-  { key: 'team.view',          label: 'View team members',           group: 'Team' },
-  { key: 'templates.view',     label: 'View file templates',         group: 'Templates' },
-  { key: 'templates.manage',   label: 'Upload / delete templates',   group: 'Templates' },
-  { key: 'designs',            label: 'Designs (badges, certs…)',    group: 'Tools' },
-  { key: 'generators',         label: 'Generators hub',              group: 'Tools' },
-  { key: 'sow_generator',      label: 'SOW Event Generator',         group: 'Tools' },
-  { key: 'admin_panel',        label: 'Admin Panel',                 group: 'Admin', adminLocked: true },
+  {
+    key: 'events.view',
+    label: 'View events & workspaces',
+    group: 'Events',
+    description: 'See the dashboard, calendar, and event workspaces.',
+  },
+  {
+    key: 'events.create',
+    label: 'Create new events',
+    group: 'Events',
+    description: 'Use “New event” and the SOW generator to add projects.',
+  },
+  {
+    key: 'events.edit',
+    label: 'Edit event details',
+    group: 'Events',
+    description: 'Update LEM, venue, SOW link, notes, and per-diem fields.',
+  },
+  {
+    key: 'events.delete',
+    label: 'Delete events permanently',
+    group: 'Events',
+    description: 'Remove events and their tasks from the dashboard (cannot be undone).',
+  },
+  {
+    key: 'events.assign',
+    label: 'Change assigned member',
+    group: 'Events',
+    description: 'Reassign who owns an event from the workspace Overview tab.',
+  },
+  {
+    key: 'tasks.view',
+    label: 'View tasks',
+    group: 'Tasks',
+    description: 'Open task lists and task details inside event workspaces.',
+  },
+  {
+    key: 'tasks.manage',
+    label: 'Create / update tasks',
+    group: 'Tasks',
+    description: 'Add tasks, change status, upload files, and post comments.',
+  },
+  {
+    key: 'task_templates',
+    label: 'Task Templates page',
+    group: 'Tasks',
+    description: 'Access the reusable LEM task templates library.',
+  },
+  {
+    key: 'team.view',
+    label: 'View team members',
+    group: 'Team',
+    description: 'See the Team page and who is assigned to which events.',
+  },
+  {
+    key: 'templates.view',
+    label: 'View file templates',
+    group: 'Templates',
+    description: 'Browse org-wide reference files and template attachments.',
+  },
+  {
+    key: 'templates.manage',
+    label: 'Upload / delete templates',
+    group: 'Templates',
+    description: 'Add or remove files on the Org Templates page.',
+  },
+  {
+    key: 'designs',
+    label: 'Designs (badges, certs…)',
+    group: 'Tools',
+    description: 'Open the Designs workspace for badges, certificates, and banners.',
+  },
+  {
+    key: 'generators',
+    label: 'Generators hub',
+    group: 'Tools',
+    description: 'Access transfer lists, AV lists, and other generators.',
+  },
+  {
+    key: 'sow_generator',
+    label: 'SOW Event Generator',
+    group: 'Tools',
+    description: 'Parse SOW PDFs and create fully templated events.',
+  },
+  {
+    key: 'admin_panel',
+    label: 'Admin Panel',
+    group: 'Admin',
+    description: 'Manage members and role permissions (admins only).',
+    adminLocked: true,
+  },
 ];
 
 export type CapMatrix = Record<AppRole, Record<AppCapability, boolean>>;
@@ -66,6 +158,8 @@ const DEFAULT_MATRIX: CapMatrix = {
     'events.view':       true,
     'events.create':     true,
     'events.edit':       true,
+    'events.delete':     false,
+    'events.assign':     false,
     'tasks.view':        true,
     'tasks.manage':      true,
     'task_templates':    false,
@@ -82,6 +176,8 @@ const DEFAULT_MATRIX: CapMatrix = {
     'events.view':       true,
     'events.create':     false,
     'events.edit':       false,
+    'events.delete':     false,
+    'events.assign':     false,
     'tasks.view':        true,
     'tasks.manage':      false,
     'task_templates':    false,
@@ -178,16 +274,35 @@ export function deactivateMember(id: string, actorEmail?: string): void {
 
 // ── Capability matrix CRUD ───────────────────────────────────────────────
 
+/** Merge stored matrix with defaults so new capabilities appear after upgrades. */
+export function normalizeCapMatrix(stored: Partial<CapMatrix> | null): CapMatrix {
+  const merged: CapMatrix = {
+    admin: { ...DEFAULT_MATRIX.admin },
+    project_lead: { ...DEFAULT_MATRIX.project_lead },
+    director: { ...DEFAULT_MATRIX.director },
+  };
+  if (!stored) return merged;
+
+  for (const role of ['project_lead', 'director'] as AppRole[]) {
+    const saved = stored[role];
+    if (!saved) continue;
+    for (const cap of CAPABILITY_LIST) {
+      if (saved[cap.key] !== undefined) {
+        merged[role][cap.key] = saved[cap.key]!;
+      }
+    }
+  }
+  return merged;
+}
+
 export function getCapMatrix(): CapMatrix {
   try {
     const raw = localStorage.getItem(CAPS_KEY);
     if (raw) {
-      const parsed = JSON.parse(raw) as CapMatrix;
-      parsed.admin = DEFAULT_MATRIX.admin;
-      return parsed;
+      return normalizeCapMatrix(JSON.parse(raw) as Partial<CapMatrix>);
     }
   } catch { /* ignore */ }
-  return { ...DEFAULT_MATRIX };
+  return normalizeCapMatrix(null);
 }
 
 /**
@@ -195,12 +310,16 @@ export function getCapMatrix(): CapMatrix {
  * background write to GAS.
  */
 export function saveCapMatrix(matrix: CapMatrix, actorEmail?: string): void {
-  matrix.admin = DEFAULT_MATRIX.admin;
-  localStorage.setItem(CAPS_KEY, JSON.stringify(matrix));
+  const normalized = normalizeCapMatrix({
+    project_lead: matrix.project_lead,
+    director: matrix.director,
+  });
+  normalized.admin = DEFAULT_MATRIX.admin;
+  localStorage.setItem(CAPS_KEY, JSON.stringify(normalized));
 
   import('../api/client').then(({ useMockData, apiCapsSave }) => {
     if (!useMockData()) {
-      apiCapsSave(matrix, actorEmail ?? '').catch((err) =>
+      apiCapsSave(normalized, actorEmail ?? '').catch((err) =>
         console.warn('[roleStore] capsSave failed:', err),
       );
     }
@@ -233,8 +352,7 @@ export async function fetchAndCacheCapMatrix(): Promise<void> {
   try {
     const matrix = await apiCapsList();
     if (matrix) {
-      matrix.admin = DEFAULT_MATRIX.admin;
-      localStorage.setItem(CAPS_KEY, JSON.stringify(matrix));
+      localStorage.setItem(CAPS_KEY, JSON.stringify(normalizeCapMatrix(matrix)));
     }
   } catch (err) {
     console.warn('[roleStore] Failed to fetch cap matrix from server:', err);

@@ -325,10 +325,11 @@ function createEvent_(payload) {
 }
 
 function deleteEvent_(rowId, code, actorEmail) {
-  if (typeof requireAdmin_ === 'function') {
-    requireAdmin_(actorEmail);
-  } else if (!actorEmail) {
-    throw new Error('Admin permission required');
+  if (!canActor_(actorEmail, 'events.delete')) {
+    throw new Error(
+      'Permission denied: delete events is not enabled for your role. ' +
+      'Ask an admin to enable “Delete events permanently” in Admin Panel → Permissions.',
+    );
   }
   var ev = findEventRow_(rowId, code);
   if (!ev) throw new Error('Event not found');

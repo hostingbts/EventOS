@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import type { Event, EventUpdates } from '../types';
 import { StatusChip } from './StatusChip';
 import { updateEvent } from '../api/client';
+import { useUser } from '../context/UserContext';
+import { getMembers } from '../utils/roleStore';
 import './EventDetail.css';
 
 const LEM_OPTIONS = ['Open', 'Closed', 'Full/Connectmice'];
@@ -21,8 +23,15 @@ function sowHref(sow: string): string | null {
 }
 
 export function EventDetail({ event, onUpdated }: Props) {
+  const { user, can } = useUser();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const canAssign = can('events.assign');
+  const assignableMembers = useMemo(
+    () => getMembers().filter((m) => m.status === 'active'),
+    [],
+  );
 
   if (!event) {
     return (
@@ -38,13 +47,20 @@ export function EventDetail({ event, onUpdated }: Props) {
     setSaving(true);
     setError(null);
     try {
-      const updated = await updateEvent(ev.rowId, ev.code, updates);
+      const updated = await updateEvent(ev.rowId, ev.code, updates, user?.email);
       onUpdated(updated);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Update failed');
     } finally {
       setSaving(false);
     }
+  }
+
+  async function saveAssignee(email: string) {
+    if (!canAssign) return;
+    const next = email.trim();
+    if (next === (ev.ownerEmail ?? '').trim()) return;
+    await saveField({ ownerEmail: next });
   }
 
   const sowLink = sowHref(ev.sow);
@@ -249,9 +265,36 @@ export function EventDetail({ event, onUpdated }: Props) {
         )}
       </section>
 
-      {ev.ownerEmail && (
-        <p className="detail__meta">Assigned member: {ev.ownerEmail}</p>
-      )}
+      <section className="detail__section">
+        <h3>Assigned member</h3>
+        {canAssign ? (
+          <label>
+            Project lead / owner
+            <select
+              value={ev.ownerEmail ?? ''}
+              onChange={(e) => saveAssignee(e.target.value)}
+              disabled={saving}
+            >
+              <option value="">— No assigned member —</option>
+              {assignableMembers.map((m) => (
+                <option key={m.id} value={m.email}>
+                  {m.name} — {m.email}
+                </option>
+              ))}
+              {ev.ownerEmail &&
+                !assignableMembers.some(
+                  (m) => m.email.toLowerCase() === ev.ownerEmail.toLowerCase(),
+                ) && (
+                  <option value={ev.ownerEmail}>{ev.ownerEmail} (not in team list)</option>
+                )}
+            </select>
+          </label>
+        ) : (
+          <p className="detail__meta">
+            {ev.ownerEmail ? ev.ownerEmail : 'No assigned member'}
+          </p>
+        )}
+      </section>
     </div>
   );
 }

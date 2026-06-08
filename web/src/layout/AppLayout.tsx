@@ -3,6 +3,7 @@ import { useUser } from '../context/UserContext';
 import { useMockData } from '../api/client';
 import { ROLE_COLORS, ROLE_LABELS } from '../utils/roleStore';
 import { FloatingCalendarButton } from '../components/FloatingCalendarButton';
+import { LOGO_ICON, LOGO_WORDMARK } from '../utils/brand';
 import './AppLayout.css';
 
 /** SVG icons — inline so there's no extra dependency */
@@ -115,8 +116,8 @@ export function AppLayout() {
       <aside className="layout__sidebar" aria-label="Main navigation">
         {/* Brand */}
         <div className="layout__brand">
-          <img src="/logo.png" alt="Event OS" className="layout__logo-img layout__logo-img--icon" />
-          <img src="/logo.png" alt="Event OS" className="layout__logo-img layout__logo-img--full" />
+          <img src={LOGO_ICON} alt="" className="layout__logo-img layout__logo-img--icon" />
+          <img src={LOGO_WORDMARK} alt="EventOS" className="layout__logo-img layout__logo-img--full" />
         </div>
 
         {/* Nav */}

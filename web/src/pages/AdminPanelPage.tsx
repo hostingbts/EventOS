@@ -1,6 +1,7 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, Fragment } from 'react';
 import { useUser } from '../context/UserContext';
 import {
+  CAPABILITY_GROUPS,
   CAPABILITY_LIST,
   ROLE_COLORS,
   ROLE_LABELS,
@@ -147,11 +148,26 @@ export function AdminPanelPage() {
   );
 
   const handleSaveCaps = useCallback(() => {
-    saveCapMatrix(matrix);
+    saveCapMatrix(matrix, user?.email);
+    setMatrix(getCapMatrix());
     setCapSaved(true);
     window.dispatchEvent(new StorageEvent('storage', { key: 'role_capabilities_v1' }));
     setTimeout(() => setCapSaved(false), 2500);
-  }, [matrix]);
+  }, [matrix, user?.email]);
+
+  // Refresh matrix when opening permissions (picks up newly added capabilities).
+  useEffect(() => {
+    if (tab !== 'permissions') return;
+    setMatrix(getCapMatrix());
+  }, [tab]);
+
+  useEffect(() => {
+    const handler = (e: StorageEvent) => {
+      if (e.key === 'role_capabilities_v1') setMatrix(getCapMatrix());
+    };
+    window.addEventListener('storage', handler);
+    return () => window.removeEventListener('storage', handler);
+  }, []);
 
   if (!isAdmin) {
     return (
@@ -162,11 +178,11 @@ export function AdminPanelPage() {
     );
   }
 
-  // Group capabilities for the permissions tab
-  const capGroups = CAPABILITY_LIST.reduce<Record<string, typeof CAPABILITY_LIST>>((acc, c) => {
-    (acc[c.group] ??= []).push(c);
-    return acc;
-  }, {});
+  // Group capabilities for the permissions tab (stable group order).
+  const capGroups = CAPABILITY_GROUPS.map((group) => ({
+    group,
+    caps: CAPABILITY_LIST.filter((c) => c.group === group),
+  })).filter((g) => g.caps.length > 0);
 
   const activeCount = members.filter((m) => m.status !== 'inactive').length;
 
@@ -307,14 +323,19 @@ export function AdminPanelPage() {
                 </tr>
               </thead>
               <tbody>
-                {Object.entries(capGroups).map(([group, caps]) => (
-                  <>
-                    <tr key={`group-${group}`} className="ap-perms-table__group">
+                {capGroups.map(({ group, caps }) => (
+                  <Fragment key={`group-${group}`}>
+                    <tr className="ap-perms-table__group">
                       <td colSpan={4}>{group}</td>
                     </tr>
                     {caps.map((cap) => (
                       <tr key={cap.key}>
-                        <td className="ap-perms-table__label">{cap.label}</td>
+                        <td className="ap-perms-table__label">
+                          <span className="ap-perms-table__name">{cap.label}</span>
+                          {cap.description && (
+                            <span className="ap-perms-table__desc">{cap.description}</span>
+                          )}
+                        </td>
                         {ROLES.map((r) => {
                           const locked = r === 'admin' || cap.adminLocked;
                           const checked = r === 'admin' ? true : (matrix[r][cap.key] ?? false);
@@ -334,7 +355,7 @@ export function AdminPanelPage() {
                         })}
                       </tr>
                     ))}
-                  </>
+                  </Fragment>
                 ))}
               </tbody>
             </table>

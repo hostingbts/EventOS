@@ -274,6 +274,20 @@
   color: var(--color-text, #0f172a);
 }
 
+.ap-perms-table__name {
+  display: block;
+  font-weight: 500;
+}
+
+.ap-perms-table__desc {
+  display: block;
+  margin-top: 0.2rem;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  color: var(--color-muted, #64748b);
+  max-width: 28rem;
+}
+
 .ap-perms-table__cell {
   text-align: center;
   padding: 0.5rem;

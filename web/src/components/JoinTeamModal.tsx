@@ -7,6 +7,7 @@ import {
   verifyPassword,
 } from '../utils/authStore';
 import { getMemberByEmail, upsertMember } from '../utils/roleStore';
+import { LOGO_WORDMARK } from '../utils/brand';
 import './JoinTeamModal.css';
 
 type Step = 'email' | 'password' | 'not_found' | 'register';
@@ -141,7 +142,7 @@ export function JoinTeamModal() {
 
         {/* Logo + wordmark */}
         <div className="login-brand">
-          <img src="/logo.png" alt="EventOS" className="login-logo" />
+          <img src={LOGO_WORDMARK} alt="EventOS" className="login-logo" />
         </div>
 
         {/* ── Step: Email ── */}

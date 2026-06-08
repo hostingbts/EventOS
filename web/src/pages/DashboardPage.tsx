@@ -119,6 +119,7 @@ interface RowProps {
   health?: EventHealth | null;
   isCompleted: boolean;
   isAdmin: boolean;
+  canDelete: boolean;
   deleting: boolean;
   onArchive: (code: string) => void;
   onUnarchive: (code: string) => void;
@@ -130,6 +131,7 @@ function EventRow({
   health,
   isCompleted: done,
   isAdmin,
+  canDelete,
   deleting,
   onArchive,
   onUnarchive,
@@ -233,32 +235,36 @@ function EventRow({
         <span className="dl-arrow" aria-hidden="true">→</span>
       </Link>
 
-      {isAdmin && (
+      {(isAdmin || canDelete) && (
         <div className="dl-admin-actions">
-          <button
-            type="button"
-            className={`dl-archive-btn${done ? ' dl-archive-btn--restore' : ''}`}
-            title={done ? 'Restore to active' : 'Archive event'}
-            disabled={deleting}
-            onClick={(e) => {
-              e.preventDefault();
-              done ? onUnarchive(ev.code) : onArchive(ev.code);
-            }}
-          >
-            {done ? '↩' : '⊙'}
-          </button>
-          <button
-            type="button"
-            className="dl-delete-btn"
-            title="Delete event permanently"
-            disabled={deleting}
-            onClick={(e) => {
-              e.preventDefault();
-              onDelete(ev);
-            }}
-          >
-            {deleting ? '…' : '✕'}
-          </button>
+          {isAdmin && (
+            <button
+              type="button"
+              className={`dl-archive-btn${done ? ' dl-archive-btn--restore' : ''}`}
+              title={done ? 'Restore to active' : 'Archive event'}
+              disabled={deleting}
+              onClick={(e) => {
+                e.preventDefault();
+                done ? onUnarchive(ev.code) : onArchive(ev.code);
+              }}
+            >
+              {done ? '↩' : '⊙'}
+            </button>
+          )}
+          {canDelete && (
+            <button
+              type="button"
+              className="dl-delete-btn"
+              title="Delete event permanently"
+              disabled={deleting}
+              onClick={(e) => {
+                e.preventDefault();
+                onDelete(ev);
+              }}
+            >
+              {deleting ? '…' : '✕'}
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -273,6 +279,7 @@ interface MonthSectionProps {
   healthByCode: Record<string, EventHealth>;
   isCompleted: boolean;
   isAdmin: boolean;
+  canDelete: boolean;
   deletingId: string | null;
   onArchive: (code: string) => void;
   onUnarchive: (code: string) => void;
@@ -285,6 +292,7 @@ function MonthSection({
   healthByCode,
   isCompleted,
   isAdmin,
+  canDelete,
   deletingId,
   onArchive,
   onUnarchive,
@@ -312,6 +320,7 @@ function MonthSection({
             health={healthByCode[ev.code]}
             isCompleted={isCompleted}
             isAdmin={isAdmin}
+            canDelete={canDelete}
             deleting={deletingId === ev.rowId}
             onArchive={onArchive}
             onUnarchive={onUnarchive}
@@ -326,7 +335,7 @@ function MonthSection({
 // ─── Dashboard page ───────────────────────────────────────────────────────────
 
 export function DashboardPage() {
-  const { user, isAdmin } = useUser();
+  const { user, isAdmin, can } = useUser();
   const navigate = useNavigate();
 
   const [events, setEvents] = useState<Event[]>([]);
@@ -378,7 +387,7 @@ export function DashboardPage() {
   }
 
   async function handleDelete(ev: Event) {
-    if (!user?.email) return;
+    if (!user?.email || !can('events.delete')) return;
     const label = ev.code + (ev.location ? ` — ${ev.location}` : '');
     if (
       !confirm(
@@ -403,6 +412,8 @@ export function DashboardPage() {
       setDeletingId(null);
     }
   }
+
+  const canDelete = can('events.delete');
 
   // Split events into active / completed
   const { activeEvents, completedEvents } = useMemo(() => {
@@ -531,6 +542,7 @@ export function DashboardPage() {
           healthByCode={healthByCode}
           isCompleted={false}
           isAdmin={isAdmin}
+          canDelete={canDelete}
           deletingId={deletingId}
           onArchive={archive}
           onUnarchive={unarchive}
@@ -567,6 +579,7 @@ export function DashboardPage() {
                   healthByCode={healthByCode}
                   isCompleted
                   isAdmin={isAdmin}
+                  canDelete={canDelete}
                   deletingId={deletingId}
                   onArchive={archive}
                   onUnarchive={unarchive}

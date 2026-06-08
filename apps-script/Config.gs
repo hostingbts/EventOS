@@ -179,3 +179,64 @@ function requireAdmin_(email) {
   }
 }
 
+/** Look up org member by email (requires OrgMembersService.gs). */
+function findMemberByEmail_(email) {
+  if (!email || typeof listMembers_ !== 'function') return null;
+  var lower = String(email).toLowerCase().trim();
+  var members = listMembers_();
+  for (var i = 0; i < members.length; i++) {
+    if (String(members[i].email).toLowerCase().trim() === lower) return members[i];
+  }
+  return null;
+}
+
+/** Merge stored capability matrix with defaults (new caps default off). */
+function resolveRoleCaps_(stored) {
+  var defaults = {
+    project_lead: {
+      'events.view': true,
+      'events.create': true,
+      'events.edit': true,
+      'events.delete': false,
+      'events.assign': false,
+    },
+    director: {
+      'events.view': true,
+      'events.create': false,
+      'events.edit': false,
+      'events.delete': false,
+      'events.assign': false,
+    },
+  };
+  var out = {
+    project_lead: Object.assign({}, defaults.project_lead),
+    director: Object.assign({}, defaults.director),
+  };
+  if (!stored || typeof stored !== 'object') return out;
+  ['project_lead', 'director'].forEach(function (role) {
+    if (!stored[role] || typeof stored[role] !== 'object') return;
+    Object.keys(stored[role]).forEach(function (cap) {
+      out[role][cap] = stored[role][cap] === true;
+    });
+  });
+  return out;
+}
+
+/**
+ * True if actor has capability. Admins always pass.
+ * Uses RoleCapabilities sheet when OrgMembersService.gs is deployed.
+ */
+function canActor_(email, cap) {
+  if (!email) return false;
+  if (isAdmin_(email)) return true;
+  if (typeof getCapMatrixFromSheet_ !== 'function') return false;
+
+  var member = findMemberByEmail_(email);
+  if (!member || String(member.status).toLowerCase() !== 'active') return false;
+
+  var matrix = resolveRoleCaps_(getCapMatrixFromSheet_());
+  var role = member.role;
+  if (!role || !matrix[role]) return false;
+  return matrix[role][cap] === true;
+}
+

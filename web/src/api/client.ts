@@ -200,12 +200,17 @@ export async function createEvent(
   return post('eventCreate', { ...input, actorEmail });
 }
 
-export async function updateEvent(rowId: string, code: string, updates: EventUpdates): Promise<Event> {
+export async function updateEvent(
+  rowId: string,
+  code: string,
+  updates: EventUpdates,
+  actorEmail?: string,
+): Promise<Event> {
   if (useMockData()) {
     const { updateMockEvent } = await import('../data/mockEvents');
     return updateMockEvent(rowId, updates);
   }
-  return post('update', { rowId, code, updates });
+  return post('update', { rowId, code, updates, actorEmail: actorEmail ?? '' });
 }
 
 export async function deleteEvent(

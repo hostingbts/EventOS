@@ -17,7 +17,7 @@ import './CalendarPage.css';
 
 const DAY_COL_W = 44;
 const LABEL_COL_W = 168;
-const LANE_H = 48;
+const LANE_H = 34;
 
 interface CalendarEvent {
   event: Event;
@@ -207,7 +207,7 @@ export function CalendarPage() {
               const maxLane = laneInput.length
                 ? Math.max(...laneInput.map((e) => lanes.get(e.id) ?? 0))
                 : 0;
-              const rowH = Math.max(56, (maxLane + 1) * LANE_H + 12);
+              const rowH = Math.max(48, (maxLane + 1) * LANE_H + 12);
 
               return (
                 <div

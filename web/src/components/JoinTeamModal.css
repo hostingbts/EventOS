@@ -34,8 +34,9 @@
 }
 
 .login-logo {
-  height: 72px;
+  height: 56px;
   width: auto;
+  max-width: min(100%, 280px);
   object-fit: contain;
 }
 

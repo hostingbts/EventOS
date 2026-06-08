@@ -84,7 +84,14 @@ function handleRequest_(e, method) {
     if (action === 'update' && acceptsWrite_(method, e)) {
       var target = findEventRow_(body.rowId, body.code);
       if (!target) return jsonResponse_({ error: 'Not found' }, 404);
-      updateEventFields_(target.rowNumber, body.updates || {});
+      var updates = body.updates || {};
+      if (updates.ownerEmail !== undefined && !canActor_(actorEmail, 'events.assign')) {
+        return jsonResponse_(
+          { error: 'Permission denied: change assigned member is not enabled for your role' },
+          403,
+        );
+      }
+      updateEventFields_(target.rowNumber, updates);
       return jsonResponse_(findEventRow_(target.rowId, target.code));
     }
 
@@ -307,7 +314,7 @@ function handleRequest_(e, method) {
       return jsonResponse_({ matrix: getCapMatrixFromSheet_() });
     }
 
-    if (action === 'capsSave' && method === 'POST') {
+    if (action === 'capsSave' && acceptsWrite_(method, e)) {
       requireAdmin_(actorEmail);
       saveCapMatrixToSheet_(body.matrix);
       return jsonResponse_({ ok: true });
