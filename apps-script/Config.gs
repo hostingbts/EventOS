@@ -162,15 +162,32 @@ function getAdminEmails_() {
 
 function isAdmin_(email) {
   if (!email) return false;
+  var lower = String(email).trim().toLowerCase();
+
   var admins = getAdminEmails_();
+  if (admins.indexOf(lower) >= 0) return true;
+
+  // Org member with Admin role (Admin Panel → Members)
+  if (typeof findMemberByEmail_ === 'function') {
+    var member = findMemberByEmail_(email);
+    if (
+      member &&
+      String(member.status).toLowerCase() === 'active' &&
+      String(member.role).toLowerCase() === 'admin'
+    ) {
+      return true;
+    }
+  }
+
+  // No explicit list — fall back to script owner
   if (admins.length === 0) {
     try {
-      return email.toLowerCase() === Session.getEffectiveUser().getEmail().toLowerCase();
+      return lower === Session.getEffectiveUser().getEmail().toLowerCase();
     } catch (e) {
       return false;
     }
   }
-  return admins.indexOf(String(email).trim().toLowerCase()) >= 0;
+  return false;
 }
 
 function requireAdmin_(email) {
@@ -233,6 +250,7 @@ function canActor_(email, cap) {
 
   var member = findMemberByEmail_(email);
   if (!member || String(member.status).toLowerCase() !== 'active') return false;
+  if (String(member.role).toLowerCase() === 'admin') return true;
 
   var matrix = resolveRoleCaps_(getCapMatrixFromSheet_());
   var role = member.role;
