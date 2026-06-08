@@ -325,7 +325,11 @@ function createEvent_(payload) {
 }
 
 function deleteEvent_(rowId, code, actorEmail) {
-  requireAdmin_(actorEmail);
+  if (typeof requireAdmin_ === 'function') {
+    requireAdmin_(actorEmail);
+  } else if (!actorEmail) {
+    throw new Error('Admin permission required');
+  }
   var ev = findEventRow_(rowId, code);
   if (!ev) throw new Error('Event not found');
 

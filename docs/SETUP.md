@@ -163,6 +163,7 @@ Recipients: **Owner Email** + **EVENT_MANAGER_EMAIL**.
 | GitHub Pages shows **Demo** badge | Expected until you add repo secrets (see below) |
 | PDF upload fails on Safari (github.io) | Hard-refresh after deploy; site uses bundled `unpdf` (no separate worker) |
 | `listVendorLinks_ is not defined` when opening an event | Add `VendorLinksService.gs` to the Apps Script project, then **Deploy → Manage deployments → New version** |
+| `requireAdmin_ is not defined` when deleting an event | Redeploy with latest `Config.gs` (admin helpers) or add `Auth.gs`; set **ADMIN_EMAILS** in Script properties |
 | SOW generator creates event but no tasks / PDF not attached | Redeploy the web app; ensure Task Templates exist on the sheet. The SOW parser maps packages to templates by **category** (SOW, AV, LEM, etc.) |
 
 ## 8. GitHub Pages (hostingbts.github.io/EventOS)

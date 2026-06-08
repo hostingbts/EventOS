@@ -145,3 +145,37 @@ function getEventManagerEmail_() {
   return Session.getEffectiveUser().getEmail();
 }
 
+// ── Admin access (Auth.gs re-exports these; kept here so partial deploys still work) ──
+
+function getAdminEmails_() {
+  var raw = getScriptProperty_('ADMIN_EMAILS', true);
+  if (!raw) return [];
+  return raw
+    .split(',')
+    .map(function (e) {
+      return e.trim().toLowerCase();
+    })
+    .filter(function (e) {
+      return e && e.indexOf('@') > 0;
+    });
+}
+
+function isAdmin_(email) {
+  if (!email) return false;
+  var admins = getAdminEmails_();
+  if (admins.length === 0) {
+    try {
+      return email.toLowerCase() === Session.getEffectiveUser().getEmail().toLowerCase();
+    } catch (e) {
+      return false;
+    }
+  }
+  return admins.indexOf(String(email).trim().toLowerCase()) >= 0;
+}
+
+function requireAdmin_(email) {
+  if (!isAdmin_(email)) {
+    throw new Error('Admin permission required');
+  }
+}
+
