@@ -227,4 +227,23 @@ async function initMockMode_(): Promise<void> {
       });
     }
   }
+
+  // Demo/offline: ensure Noemi exists for translations team testing
+  const NOEMI_EMAIL = 'translations@connectmice.com';
+  const NOEMI_PASSWORD = 'Noemi@CM2026!';
+  if (!getAccountByEmail(NOEMI_EMAIL)) {
+    await createAuthAccount('Noemi', NOEMI_EMAIL, NOEMI_PASSWORD);
+    const { getMemberByEmail, upsertMember } = await import('./roleStore');
+    if (!getMemberByEmail(NOEMI_EMAIL)) {
+      upsertMember({
+        id: 'member-noemi',
+        name: 'Noemi',
+        email: NOEMI_EMAIL,
+        role: 'project_lead',
+        status: 'active',
+        createdAt: new Date().toISOString().slice(0, 10),
+        invitedBy: SEED_EMAIL,
+      });
+    }
+  }
 }

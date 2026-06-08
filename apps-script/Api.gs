@@ -274,7 +274,7 @@ function handleRequest_(e, method) {
       return jsonResponse_({ exists: !!found });
     }
 
-    if (action === 'authRegister' && method === 'POST') {
+    if (action === 'authRegister' && acceptsWrite_(method, e)) {
       return jsonResponse_(registerAccount_(body.name, body.email, body.passwordHash));
     }
 
@@ -293,7 +293,7 @@ function handleRequest_(e, method) {
       return jsonResponse_({ members: listMembers_() });
     }
 
-    if (action === 'membersUpsert' && method === 'POST') {
+    if (action === 'membersUpsert' && acceptsWrite_(method, e)) {
       return jsonResponse_(upsertMember_(body.member));
     }
 

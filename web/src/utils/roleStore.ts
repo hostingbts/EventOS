@@ -114,6 +114,7 @@ const SEED_MEMBERS: OrgMember[] = [
   { id: 'seed-admin', name: 'Admin',       email: 'admin@team.org',    role: 'admin',        status: 'active', createdAt: '2025-01-01', invitedBy: '' },
   { id: 'seed-lead',  name: 'Lead',        email: 'lead@team.org',     role: 'project_lead', status: 'active', createdAt: '2025-01-01', invitedBy: 'admin@team.org' },
   { id: 'seed-dir',   name: 'Director',    email: 'director@team.org', role: 'director',     status: 'active', createdAt: '2025-01-01', invitedBy: 'admin@team.org' },
+  { id: 'member-noemi', name: 'Noemi', email: 'translations@connectmice.com', role: 'project_lead', status: 'active', createdAt: '2026-06-05', invitedBy: 'admin@connectmice.com' },
 ];
 
 // ── Members CRUD ─────────────────────────────────────────────────────────
