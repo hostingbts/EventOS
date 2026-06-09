@@ -360,7 +360,14 @@ function buildDeparturesSheet(
 
 // ─── main export function ──────────────────────────────────────────────────
 
-export function exportTransferList(travelers: TravelerEntry[], setup: TransferSetup): void {
+export function transferListFilename(setup: TransferSetup): string {
+  const code  = (setup.eventCode  || 'CODE').replace(/\s+/g, '');
+  const city  = (setup.eventCity  || 'City').replace(/\s+/g, '-');
+  const dates = (setup.eventDates || '').replace(/[\/\\]/g, '-').replace(/\s+/g, '-') || 'Date';
+  return `${code}_${city}_${dates}_Transfer_List.xlsx`;
+}
+
+export function buildTransferListWorkbook(travelers: TravelerEntry[], setup: TransferSetup) {
   const wb = XLSXStyle.utils.book_new();
 
   const arrSheet = buildArrivalsSheet(travelers, setup.arrivalAirport, setup.hotel);
@@ -369,11 +376,14 @@ export function exportTransferList(travelers: TravelerEntry[], setup: TransferSe
   XLSXStyle.utils.book_append_sheet(wb, arrSheet, 'Arrivals');
   XLSXStyle.utils.book_append_sheet(wb, depSheet, 'Departures');
 
-  // Filename: {code}_{city}_{dates}_Transfer_List.xlsx
-  const code  = (setup.eventCode  || 'CODE').replace(/\s+/g, '');
-  const city  = (setup.eventCity  || 'City').replace(/\s+/g, '-');
-  const dates = (setup.eventDates || '').replace(/[\/\\]/g, '-').replace(/\s+/g, '-') || 'Date';
-  const filename = `${code}_${city}_${dates}_Transfer_List.xlsx`;
+  return wb;
+}
 
-  XLSXStyle.writeFile(wb, filename);
+export function transferListToArrayBuffer(travelers: TravelerEntry[], setup: TransferSetup): ArrayBuffer {
+  const wb = buildTransferListWorkbook(travelers, setup);
+  return XLSXStyle.write(wb, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer;
+}
+
+export function exportTransferList(travelers: TravelerEntry[], setup: TransferSetup): void {
+  XLSXStyle.writeFile(buildTransferListWorkbook(travelers, setup), transferListFilename(setup));
 }

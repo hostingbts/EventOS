@@ -61,6 +61,66 @@ function getOrCreateEventFolder_(eventCode, location) {
 
 // createEventDriveFolders_ is defined in SheetService.gs (used when creating events)
 
+var TRANSFER_LISTS_SUBFOLDER_ = 'Transfer Lists';
+
+function getEventSubfolder_(eventCode, location, subfolderName) {
+  var eventFolder = getOrCreateEventFolder_(eventCode, location || '');
+  var iter = eventFolder.getFoldersByName(subfolderName);
+  if (iter.hasNext()) return iter.next();
+  var sub = eventFolder.createFolder(subfolderName);
+  setOrgSharing_(sub);
+  return sub;
+}
+
+/**
+ * Upload (or replace) a transfer list .xlsx in the event's Transfer Lists folder.
+ * Returns a shareable Drive view URL.
+ */
+function uploadTransferList_(payload) {
+  if (!payload.eventCode || !payload.fileName || !payload.dataBase64) {
+    throw new Error('eventCode, fileName and dataBase64 required');
+  }
+
+  var bytes = Utilities.base64Decode(payload.dataBase64);
+  if (bytes.length > CONFIG.MAX_UPLOAD_BYTES) {
+    throw new Error('File exceeds 10 MB limit');
+  }
+
+  var ev = findEventRow_(payload.eventRowId || '', payload.eventCode);
+  var location = ev ? ev.location : payload.eventLocation || '';
+
+  var folder = getEventSubfolder_(payload.eventCode, location, TRANSFER_LISTS_SUBFOLDER_);
+
+  var existing = folder.getFilesByName(payload.fileName);
+  while (existing.hasNext()) {
+    existing.next().setTrashed(true);
+  }
+
+  var mime =
+    payload.mimeType ||
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+  var blob = Utilities.newBlob(bytes, mime, payload.fileName);
+  var driveFile = folder.createFile(blob);
+  setOrgSharing_(driveFile);
+
+  var shareUrl =
+    'https://drive.google.com/file/d/' + driveFile.getId() + '/view?usp=sharing';
+
+  logActivity_(
+    'transfer_list_saved',
+    payload.eventCode,
+    '',
+    payload.fileName,
+    payload.uploadedBy || payload.actorEmail || '',
+  );
+
+  return {
+    driveFileId: driveFile.getId(),
+    driveUrl: shareUrl,
+    fileName: payload.fileName,
+  };
+}
+
 function getTaskFolder_(eventCode, taskId) {
   var root = getDriveRootFolder_();
   var eventFolders = root.getFoldersByName(eventCode);

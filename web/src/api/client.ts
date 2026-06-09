@@ -333,6 +333,34 @@ export async function deleteTaskFile(fileId: string, actorEmail: string): Promis
   await post('fileDelete', { fileId, actorEmail });
 }
 
+export interface TransferListSaveResult {
+  driveFileId: string;
+  driveUrl: string;
+  fileName: string;
+}
+
+export async function saveTransferListToDrive(payload: {
+  eventCode: string;
+  fileName: string;
+  dataBase64: string;
+  uploadedBy: string;
+  actorEmail: string;
+  eventLocation?: string;
+}): Promise<TransferListSaveResult> {
+  if (useMockData()) {
+    const id = 'mock-transfer-' + payload.eventCode;
+    return {
+      driveFileId: id,
+      driveUrl: `https://drive.google.com/file/d/${id}/view?usp=sharing`,
+      fileName: payload.fileName,
+    };
+  }
+  return post<TransferListSaveResult>('transferListSave', {
+    ...payload,
+    mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+}
+
 function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();

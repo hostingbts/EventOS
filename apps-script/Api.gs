@@ -251,6 +251,12 @@ function handleRequest_(e, method) {
       return jsonResponse_(deleteFile_(body.fileId, actorEmail));
     }
 
+    if (action === 'transferListSave' && acceptsWrite_(method, e)) {
+      body.uploadedBy = actorEmail || body.uploadedBy || '';
+      body.actorEmail = actorEmail;
+      return jsonResponse_(uploadTransferList_(body));
+    }
+
     // ——— Team ———
     if (action === 'activity') {
       return jsonResponse_({

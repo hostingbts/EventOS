@@ -8,9 +8,9 @@
  */
 import { useEffect, useId, useRef, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { exportTransferList, vehicleForCount } from '../utils/exportTransferList';
+import { exportTransferList, transferListFilename, transferListToArrayBuffer, vehicleForCount } from '../utils/exportTransferList';
 import { saveTransferList, loadTransferList } from '../utils/transferListStore';
-import { fetchEvents } from '../api/client';
+import { fetchEvents, saveTransferListToDrive } from '../api/client';
 import { parseTicketPdf } from '../utils/parseTicketPdf';
 import { useUser } from '../context/UserContext';
 import type { Event } from '../types';
@@ -106,6 +106,13 @@ function groupByKey<T>(items: T[], key: (item: T) => string): Map<string, T[]> {
     m.get(k)!.push(item);
   }
   return m;
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
 }
 
 const TYPE_BADGE: Record<string, string> = {
@@ -430,7 +437,10 @@ export function TransferListPage() {
   const [saving,    setSaving]    = useState(false);
   const [savedAt,   setSavedAt]   = useState<string | null>(null);
   const [savedBy,   setSavedBy]   = useState<string>('');
-  const [restoreBanner, setRestoreBanner] = useState<{ setup: TransferSetup; travelers: TravelerEntry[]; savedAt: string; savedBy: string } | null>(null);
+  const [driveLink, setDriveLink] = useState<string | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [restoreBanner, setRestoreBanner] = useState<{ setup: TransferSetup; travelers: TravelerEntry[]; savedAt: string; savedBy: string; driveUrl?: string } | null>(null);
   const [parsing, setParsing] = useState(false);
   const [parseErrors, setParseErrors] = useState<string[]>([]);
   const listRef = useRef<HTMLDivElement>(null);
@@ -463,8 +473,10 @@ export function TransferListPage() {
     const saved = loadTransferList(ev.code);
     if (saved && saved.travelers.length > 0) {
       setRestoreBanner(saved);
+      if (saved.driveUrl) setDriveLink(saved.driveUrl);
     } else {
       setRestoreBanner(null);
+      setDriveLink(null);
     }
   }
 
@@ -478,6 +490,7 @@ export function TransferListPage() {
       // Also surface the last-saved timestamp in the indicator
       setSavedAt(saved.savedAt);
       setSavedBy(saved.savedBy);
+      if (saved.driveUrl) setDriveLink(saved.driveUrl);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -489,23 +502,65 @@ export function TransferListPage() {
     setOpenId(restoreBanner.travelers[0]?.id ?? null);
     setSavedAt(restoreBanner.savedAt);
     setSavedBy(restoreBanner.savedBy);
+    setDriveLink(restoreBanner.driveUrl ?? null);
     setRestoreBanner(null);
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!setup.eventCode) return;
     setSaving(true);
+    setSaveError(null);
     const now = new Date().toISOString();
+    const name = user?.name ?? 'Unknown';
+    const email = user?.email ?? '';
+    const fileName = transferListFilename(setup);
+    let nextDriveUrl = driveLink;
+
+    try {
+      const buffer = transferListToArrayBuffer(travelers, setup);
+      const result = await saveTransferListToDrive({
+        eventCode: setup.eventCode,
+        fileName,
+        dataBase64: arrayBufferToBase64(buffer),
+        uploadedBy: name,
+        actorEmail: email,
+        eventLocation: setup.eventCity,
+      });
+      nextDriveUrl = result.driveUrl;
+      setDriveLink(result.driveUrl);
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : 'Could not save to Google Drive');
+    }
+
     saveTransferList(setup.eventCode, {
       setup,
       travelers,
-      savedAt:      now,
-      savedBy:      user?.name  ?? 'Unknown',
-      savedByEmail: user?.email ?? '',
+      savedAt: now,
+      savedBy: name,
+      savedByEmail: email,
+      driveUrl: nextDriveUrl ?? undefined,
     });
     setSavedAt(now);
-    setSavedBy(user?.name ?? '');
+    setSavedBy(name);
     setTimeout(() => setSaving(false), 800);
+  }
+
+  async function handleCopyLink() {
+    if (!driveLink) return;
+    try {
+      await navigator.clipboard.writeText(driveLink);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = driveLink;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
   }
 
   function patchSetup(field: keyof TransferSetup) {
@@ -601,12 +656,7 @@ export function TransferListPage() {
     }
   }
 
-  const filename = (() => {
-    const code  = (setup.eventCode  || 'CODE').replace(/\s+/g, '');
-    const city  = (setup.eventCity  || 'City').replace(/\s+/g, '-');
-    const dates = (setup.eventDates || 'Date').replace(/[\/\\]/g, '-').replace(/\s+/g, '-');
-    return `${code}_${city}_${dates}_Transfer_List.xlsx`;
-  })();
+  const filename = transferListFilename(setup);
 
   return (
     <div className="tl-page">
@@ -796,6 +846,9 @@ export function TransferListPage() {
                 ✓ Saved{savedBy ? ` by ${savedBy}` : ''} · {new Date(savedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
               </div>
             )}
+            {saveError && (
+              <p className="tl-save-error">⚠ {saveError}</p>
+            )}
             <div className="tl-export-row">
               <button
                 type="button"
@@ -805,14 +858,24 @@ export function TransferListPage() {
               >
                 {exporting ? '⏳ Generating…' : '📥 Export Excel (.xlsx)'}
               </button>
+              {driveLink && (
+                <button
+                  type="button"
+                  className="tl-link-btn"
+                  onClick={handleCopyLink}
+                  title="Copy Google Drive link to clipboard"
+                >
+                  {linkCopied ? '✓ Copied!' : '🔗 Link'}
+                </button>
+              )}
               <button
                 type="button"
                 className="tl-save-btn"
                 onClick={handleSave}
                 disabled={saving || !setup.eventCode || travelers.length === 0}
-                title={!setup.eventCode ? 'Select an event first' : 'Save transfer list for this event'}
+                title={!setup.eventCode ? 'Select an event first' : 'Save transfer list to Google Drive'}
               >
-                {saving ? '✓ Saved!' : '💾 Save'}
+                {saving ? '⏳ Saving…' : '💾 Save'}
               </button>
             </div>
             {!setup.eventCode && (

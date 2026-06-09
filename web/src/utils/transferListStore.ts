@@ -11,6 +11,7 @@ export interface SavedTransferList {
   savedAt:      string;   // ISO timestamp
   savedBy:      string;   // display name
   savedByEmail: string;
+  driveUrl?:    string;   // Google Drive share link after save
 }
 
 function key(eventCode: string): string {
