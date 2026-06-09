@@ -115,6 +115,20 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
   return btoa(binary);
 }
 
+function driveMetaFromSaved(saved: { driveUrl?: string; driveFileId?: string }) {
+  const driveFileId = saved.driveFileId || driveFileIdFromUrl(saved.driveUrl);
+  const driveUrl =
+    saved.driveUrl ||
+    (driveFileId ? `https://drive.google.com/file/d/${driveFileId}/view?usp=sharing` : null);
+  return { driveFileId: driveFileId ?? null, driveUrl };
+}
+
+function driveFileIdFromUrl(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+  const m = url.match(/\/file\/d\/([^/?#]+)/);
+  return m?.[1];
+}
+
 const TYPE_BADGE: Record<string, string> = {
   EXPERT:      '#7c3aed',
   PARTICIPANT: '#0369a1',
@@ -438,9 +452,10 @@ export function TransferListPage() {
   const [savedAt,   setSavedAt]   = useState<string | null>(null);
   const [savedBy,   setSavedBy]   = useState<string>('');
   const [driveLink, setDriveLink] = useState<string | null>(null);
+  const [driveFileId, setDriveFileId] = useState<string | null>(null);
   const [linkCopied, setLinkCopied] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [restoreBanner, setRestoreBanner] = useState<{ setup: TransferSetup; travelers: TravelerEntry[]; savedAt: string; savedBy: string; driveUrl?: string } | null>(null);
+  const [restoreBanner, setRestoreBanner] = useState<{ setup: TransferSetup; travelers: TravelerEntry[]; savedAt: string; savedBy: string; driveUrl?: string; driveFileId?: string } | null>(null);
   const [parsing, setParsing] = useState(false);
   const [parseErrors, setParseErrors] = useState<string[]>([]);
   const listRef = useRef<HTMLDivElement>(null);
@@ -473,10 +488,13 @@ export function TransferListPage() {
     const saved = loadTransferList(ev.code);
     if (saved && saved.travelers.length > 0) {
       setRestoreBanner(saved);
-      if (saved.driveUrl) setDriveLink(saved.driveUrl);
+      const meta = driveMetaFromSaved(saved);
+      setDriveLink(meta.driveUrl);
+      setDriveFileId(meta.driveFileId);
     } else {
       setRestoreBanner(null);
       setDriveLink(null);
+      setDriveFileId(null);
     }
   }
 
@@ -490,7 +508,9 @@ export function TransferListPage() {
       // Also surface the last-saved timestamp in the indicator
       setSavedAt(saved.savedAt);
       setSavedBy(saved.savedBy);
-      if (saved.driveUrl) setDriveLink(saved.driveUrl);
+      const meta = driveMetaFromSaved(saved);
+      setDriveLink(meta.driveUrl);
+      setDriveFileId(meta.driveFileId);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -502,7 +522,9 @@ export function TransferListPage() {
     setOpenId(restoreBanner.travelers[0]?.id ?? null);
     setSavedAt(restoreBanner.savedAt);
     setSavedBy(restoreBanner.savedBy);
-    setDriveLink(restoreBanner.driveUrl ?? null);
+    const meta = driveMetaFromSaved(restoreBanner);
+    setDriveLink(meta.driveUrl);
+    setDriveFileId(meta.driveFileId);
     setRestoreBanner(null);
   }
 
@@ -515,6 +537,7 @@ export function TransferListPage() {
     const email = user?.email ?? '';
     const fileName = transferListFilename(setup);
     let nextDriveUrl = driveLink;
+    let nextDriveFileId = driveFileId;
 
     try {
       const buffer = transferListToArrayBuffer(travelers, setup);
@@ -525,9 +548,12 @@ export function TransferListPage() {
         uploadedBy: name,
         actorEmail: email,
         eventLocation: setup.eventCity,
+        driveFileId: driveFileId ?? undefined,
       });
       nextDriveUrl = result.driveUrl;
+      nextDriveFileId = result.driveFileId;
       setDriveLink(result.driveUrl);
+      setDriveFileId(result.driveFileId);
     } catch (e) {
       setSaveError(e instanceof Error ? e.message : 'Could not save to Google Drive');
     }
@@ -539,6 +565,7 @@ export function TransferListPage() {
       savedBy: name,
       savedByEmail: email,
       driveUrl: nextDriveUrl ?? undefined,
+      driveFileId: nextDriveFileId ?? undefined,
     });
     setSavedAt(now);
     setSavedBy(name);

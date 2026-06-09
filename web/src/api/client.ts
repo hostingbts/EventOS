@@ -346,9 +346,10 @@ export async function saveTransferListToDrive(payload: {
   uploadedBy: string;
   actorEmail: string;
   eventLocation?: string;
+  driveFileId?: string;
 }): Promise<TransferListSaveResult> {
   if (useMockData()) {
-    const id = 'mock-transfer-' + payload.eventCode;
+    const id = payload.driveFileId || 'mock-transfer-' + payload.eventCode;
     return {
       driveFileId: id,
       driveUrl: `https://drive.google.com/file/d/${id}/view?usp=sharing`,

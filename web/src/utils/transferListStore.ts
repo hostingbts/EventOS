@@ -12,6 +12,7 @@ export interface SavedTransferList {
   savedBy:      string;   // display name
   savedByEmail: string;
   driveUrl?:    string;   // Google Drive share link after save
+  driveFileId?: string;   // Stable Drive file ID — link stays the same on re-save
 }
 
 function key(eventCode: string): string {

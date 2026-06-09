@@ -73,8 +73,8 @@ function getEventSubfolder_(eventCode, location, subfolderName) {
 }
 
 /**
- * Upload (or replace) a transfer list .xlsx in the event's Transfer Lists folder.
- * Returns a shareable Drive view URL.
+ * Upload (or update in place) a transfer list .xlsx in the event's Transfer Lists folder.
+ * Reuses the same Drive file ID when possible so vendor links stay stable.
  */
 function uploadTransferList_(payload) {
   if (!payload.eventCode || !payload.fileName || !payload.dataBase64) {
@@ -91,20 +91,25 @@ function uploadTransferList_(payload) {
 
   var folder = getEventSubfolder_(payload.eventCode, location, TRANSFER_LISTS_SUBFOLDER_);
 
-  var existing = folder.getFilesByName(payload.fileName);
-  while (existing.hasNext()) {
-    existing.next().setTrashed(true);
-  }
-
   var mime =
     payload.mimeType ||
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
   var blob = Utilities.newBlob(bytes, mime, payload.fileName);
-  var driveFile = folder.createFile(blob);
-  setOrgSharing_(driveFile);
 
-  var shareUrl =
-    'https://drive.google.com/file/d/' + driveFile.getId() + '/view?usp=sharing';
+  var driveFile = findTransferListDriveFile_(folder, payload.driveFileId, payload.fileName);
+
+  if (driveFile) {
+    driveFile.setBlob(blob);
+    if (driveFile.getName() !== payload.fileName) {
+      driveFile.setName(payload.fileName);
+    }
+  } else {
+    driveFile = folder.createFile(blob);
+    setOrgSharing_(driveFile);
+  }
+
+  var fileId = driveFile.getId();
+  var shareUrl = 'https://drive.google.com/file/d/' + fileId + '/view?usp=sharing';
 
   logActivity_(
     'transfer_list_saved',
@@ -115,10 +120,33 @@ function uploadTransferList_(payload) {
   );
 
   return {
-    driveFileId: driveFile.getId(),
+    driveFileId: fileId,
     driveUrl: shareUrl,
     fileName: payload.fileName,
   };
+}
+
+/** Find an existing transfer list file to update — by ID first, then by name in folder. */
+function findTransferListDriveFile_(folder, driveFileId, fileName) {
+  if (driveFileId) {
+    try {
+      var byId = DriveApp.getFileById(driveFileId);
+      if (!byId.isTrashed()) return byId;
+    } catch (e) {
+      Logger.log('findTransferListDriveFile_ id lookup failed: ' + e);
+    }
+  }
+
+  if (!fileName) return null;
+
+  var iter = folder.getFilesByName(fileName);
+  if (!iter.hasNext()) return null;
+
+  var primary = iter.next();
+  while (iter.hasNext()) {
+    iter.next().setTrashed(true);
+  }
+  return primary;
 }
 
 function getTaskFolder_(eventCode, taskId) {
