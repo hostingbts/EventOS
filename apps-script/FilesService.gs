@@ -72,6 +72,37 @@ function getEventSubfolder_(eventCode, location, subfolderName) {
   return sub;
 }
 
+/** Update an existing Drive file's binary content in place (keeps the same file ID / link). */
+function updateTransferListFileContent_(fileId, blob, fileName) {
+  var response = UrlFetchApp.fetch(
+    'https://www.googleapis.com/upload/drive/v3/files/' + fileId + '?uploadType=media',
+    {
+      method: 'PATCH',
+      headers: {
+        Authorization: 'Bearer ' + ScriptApp.getOAuthToken(),
+      },
+      contentType: blob.getContentType(),
+      payload: blob.getBytes(),
+      muteHttpExceptions: true,
+    }
+  );
+
+  if (response.getResponseCode() >= 300) {
+    throw new Error(
+      'Drive update failed (' +
+        response.getResponseCode() +
+        '): ' +
+        response.getContentText().slice(0, 200)
+    );
+  }
+
+  var file = DriveApp.getFileById(fileId);
+  if (fileName && file.getName() !== fileName) {
+    file.setName(fileName);
+  }
+  return file;
+}
+
 /**
  * Upload (or update in place) a transfer list .xlsx in the event's Transfer Lists folder.
  * Reuses the same Drive file ID when possible so vendor links stay stable.
@@ -96,13 +127,11 @@ function uploadTransferList_(payload) {
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
   var blob = Utilities.newBlob(bytes, mime, payload.fileName);
 
-  var driveFile = findTransferListDriveFile_(folder, payload.driveFileId, payload.fileName);
+  var existingFile = findTransferListDriveFile_(folder, payload.driveFileId, payload.fileName);
+  var driveFile;
 
-  if (driveFile) {
-    driveFile.setBlob(blob);
-    if (driveFile.getName() !== payload.fileName) {
-      driveFile.setName(payload.fileName);
-    }
+  if (existingFile) {
+    driveFile = updateTransferListFileContent_(existingFile.getId(), blob, payload.fileName);
   } else {
     driveFile = folder.createFile(blob);
     setOrgSharing_(driveFile);
