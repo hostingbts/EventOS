@@ -74,33 +74,22 @@ function getEventSubfolder_(eventCode, location, subfolderName) {
 
 /** Update an existing Drive file's binary content in place (keeps the same file ID / link). */
 function updateTransferListFileContent_(fileId, blob, fileName) {
-  var response = UrlFetchApp.fetch(
-    'https://www.googleapis.com/upload/drive/v3/files/' + fileId + '?uploadType=media',
-    {
-      method: 'PATCH',
-      headers: {
-        Authorization: 'Bearer ' + ScriptApp.getOAuthToken(),
-      },
-      contentType: blob.getContentType(),
-      payload: blob.getBytes(),
-      muteHttpExceptions: true,
-    }
-  );
-
-  if (response.getResponseCode() >= 300) {
+  if (typeof Drive === 'undefined' || !Drive.Files) {
     throw new Error(
-      'Drive update failed (' +
-        response.getResponseCode() +
-        '): ' +
-        response.getContentText().slice(0, 200)
+      'Drive advanced service is not enabled. In Apps Script: Services (+) → Drive API → Add, then redeploy.',
     );
   }
 
-  var file = DriveApp.getFileById(fileId);
-  if (fileName && file.getName() !== fileName) {
-    file.setName(fileName);
+  var metadata = {};
+  if (fileName) metadata.title = fileName;
+
+  try {
+    Drive.Files.update(metadata, fileId, blob);
+  } catch (e) {
+    throw new Error('Drive update failed: ' + (e.message || e));
   }
-  return file;
+
+  return DriveApp.getFileById(fileId);
 }
 
 /**
