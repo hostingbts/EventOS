@@ -410,6 +410,21 @@
   font-size: 0.82rem;
 }
 
+.sow-warn-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0.6rem 0.85rem;
+  background: #fffbeb;
+  border: 1px solid #fcd34d;
+  border-radius: 6px;
+  color: #92400e;
+  font-size: 0.82rem;
+}
+
+.sow-warn-list li + li {
+  margin-top: 0.35rem;
+}
+
 .sow-err--gen { margin-top: 1rem; }
 
 /* ─── Access denied ──────────────────────────────────────────────────────── */

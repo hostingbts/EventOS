@@ -153,7 +153,7 @@ export function SOWGeneratorPage() {
       // Pre-fill form fields
       setCode(sow.eventCode);
       setTitle(sow.meetingName);
-      setLocation(sow.city || sow.location);
+      setLocation(sow.location || sow.city);
       setStartDate(sow.startDate);
       setEndDate(sow.endDate);
       setNotes(sow.notes);
@@ -334,6 +334,13 @@ export function SOWGeneratorPage() {
               )}
             </div>
             {parseErr && <p className="sow-err">{parseErr}</p>}
+            {parsed && parsed.warnings.length > 0 && (
+              <ul className="sow-warn-list">
+                {parsed.warnings.map((w) => (
+                  <li key={w}>{w}</li>
+                ))}
+              </ul>
+            )}
           </section>
 
           {/* Step 2: Detected packages */}
