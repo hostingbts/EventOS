@@ -84,44 +84,43 @@ function blank(s: CS) { return { v: '', s }; }
 
 // ─── Main export ─────────────────────────────────────────────────────────────
 
-export function exportAVEquipment(
-  setup:   AVSetup,
-  items:   AVItemState[],
-): void {
+export function avEquipmentFilename(setup: AVSetup): string {
+  const safeName = [
+    setup.eventCode || 'EVENT',
+    setup.eventCity || 'City',
+    setup.eventDate || 'Date',
+  ].join('_').replace(/[/\\:*?"<>|]/g, '-');
+  return `${safeName}_Equipment.xlsx`;
+}
+
+export function buildAVEquipmentWorkbook(setup: AVSetup, items: AVItemState[]) {
   const enabled = items.filter((it) => it.enabled);
 
-  // ── Title cell text ──────────────────────────────────────────────────────
   const titleLine1 = `${setup.eventCode} - ${setup.eventCity} - Date: ${setup.eventDate}`;
   const titleLine2 = `Set up: ${setup.setupStyle}${setup.pax ? ` - ${setup.pax} PAX` : ''}`;
 
-  // ── Column widths (A=4, B=60, C=8, D=6, E=8, F=16, G=14) ─────────────
   const colWidths = [4, 60, 8, 6, 8, 16, 14];
 
   const ws: Record<string, unknown> = {};
 
-  // Encode cell helper
   const enc = XLSXStyle.utils.encode_cell;
 
   let R = 0;
 
-  // ── Row 0: Title (merged A:G) ────────────────────────────────────────────
   ws[enc({ r: R, c: 0 })] = c(`${titleLine1}\n${titleLine2}`, S_TITLE);
   for (let col = 1; col <= 6; col++) ws[enc({ r: R, c: col })] = blank(S_TITLE);
   R++;
 
-  // ── Row 1: Column headers ────────────────────────────────────────────────
   const headers = ['No.', 'Name of the Service and Brief Description', 'Item', 'Day', 'Amount', 'Price per Item', 'Total'];
   headers.forEach((h, col) => {
     ws[enc({ r: R, c: col })] = c(h, S_HEADER);
   });
   R++;
 
-  // ── Row 2: Section header "Conference Equipment" (merged A:G) ────────────
   ws[enc({ r: R, c: 0 })] = c('Conference Equipment', S_SECTION);
   for (let col = 1; col <= 6; col++) ws[enc({ r: R, c: col })] = blank(S_SECTION);
   R++;
 
-  // ── Data rows (only enabled items) ──────────────────────────────────────
   enabled.forEach((item, idx) => {
     const desc   = buildDescription(item);
     const amount = resolveAmount(item);
@@ -135,57 +134,53 @@ export function exportAVEquipment(
     R++;
   });
 
-  // ── Footer: Equipment Total ──────────────────────────────────────────────
   ws[enc({ r: R, c: 0 })] = c('Equipment Total', S_FOOTER_LABEL);
   for (let col = 1; col <= 5; col++) ws[enc({ r: R, c: col })] = blank(S_FOOTER_LABEL);
   ws[enc({ r: R, c: 6 })] = c(0, S_FOOTER_VALUE);
   R++;
 
-  // ── Footer: Total Sum ────────────────────────────────────────────────────
   ws[enc({ r: R, c: 0 })] = c('Total Sum (*Taxes and fees Included)', S_FOOTER_LABEL);
   for (let col = 1; col <= 5; col++) ws[enc({ r: R, c: col })] = blank(S_FOOTER_LABEL);
   ws[enc({ r: R, c: 6 })] = c(0, S_FOOTER_VALUE);
   R++;
 
-  // ── Worksheet metadata ───────────────────────────────────────────────────
   const lastRow = R - 1;
   ws['!ref'] = XLSXStyle.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: lastRow, c: 6 } });
 
   ws['!merges'] = [
-    // Title row A:G
     { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } },
-    // Section header A:G
     { s: { r: 2, c: 0 }, e: { r: 2, c: 6 } },
-    // Equipment Total label A:F
     { s: { r: lastRow - 1, c: 0 }, e: { r: lastRow - 1, c: 5 } },
-    // Total Sum label A:F
     { s: { r: lastRow, c: 0 }, e: { r: lastRow, c: 5 } },
   ];
 
   ws['!cols'] = colWidths.map((w) => ({ wch: w }));
 
   ws['!rows'] = [
-    { hpt: 50 },  // title
-    { hpt: 32 },  // headers
-    { hpt: 20 },  // section
+    { hpt: 50 },
+    { hpt: 32 },
+    { hpt: 20 },
     ...Array(enabled.length).fill({ hpt: 40 }),
-    { hpt: 20 },  // footer 1
-    { hpt: 20 },  // footer 2
+    { hpt: 20 },
+    { hpt: 20 },
   ];
 
-  // ── Build workbook & save ────────────────────────────────────────────────
   const wb = XLSXStyle.utils.book_new();
   const sheetName = setup.eventDate || 'Equipment';
   XLSXStyle.utils.book_append_sheet(wb, ws, sheetName.slice(0, 31));
+  return wb;
+}
 
-  // Filename: {code}_{city}_{date}_Equipment.xlsx
-  const safeName = [
-    setup.eventCode || 'EVENT',
-    setup.eventCity || 'City',
-    setup.eventDate || 'Date',
-  ].join('_').replace(/[/\\:*?"<>|]/g, '-');
+export function avEquipmentToArrayBuffer(setup: AVSetup, items: AVItemState[]): ArrayBuffer {
+  const wb = buildAVEquipmentWorkbook(setup, items);
+  return XLSXStyle.write(wb, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer;
+}
 
-  XLSXStyle.writeFile(wb, `${safeName}_Equipment.xlsx`);
+export function exportAVEquipment(
+  setup:   AVSetup,
+  items:   AVItemState[],
+): void {
+  XLSXStyle.writeFile(buildAVEquipmentWorkbook(setup, items), avEquipmentFilename(setup));
 }
 
 // ─── Resolve the "Amount" column value for an item ──────────────────────────

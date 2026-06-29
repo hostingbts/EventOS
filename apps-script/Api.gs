@@ -257,6 +257,12 @@ function handleRequest_(e, method) {
       return jsonResponse_(uploadTransferList_(body));
     }
 
+    if (action === 'avEquipmentSave' && acceptsWrite_(method, e)) {
+      body.uploadedBy = actorEmail || body.uploadedBy || '';
+      body.actorEmail = actorEmail;
+      return jsonResponse_(uploadAVEquipment_(body));
+    }
+
     // ——— Team ———
     if (action === 'activity') {
       return jsonResponse_({

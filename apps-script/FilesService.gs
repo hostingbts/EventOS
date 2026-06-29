@@ -62,6 +62,7 @@ function getOrCreateEventFolder_(eventCode, location) {
 // createEventDriveFolders_ is defined in SheetService.gs (used when creating events)
 
 var TRANSFER_LISTS_SUBFOLDER_ = 'Transfer Lists';
+var AV_EQUIPMENT_SUBFOLDER_ = 'AV Equipment';
 
 function getEventSubfolder_(eventCode, location, subfolderName) {
   var eventFolder = getOrCreateEventFolder_(eventCode, location || '');
@@ -73,7 +74,7 @@ function getEventSubfolder_(eventCode, location, subfolderName) {
 }
 
 /** Update an existing Drive file's binary content in place (keeps the same file ID / link). */
-function updateTransferListFileContent_(fileId, blob, fileName) {
+function updateDriveFileContent_(fileId, blob, fileName) {
   if (typeof Drive === 'undefined' || !Drive.Files) {
     throw new Error(
       'Drive advanced service is not enabled. In Apps Script: Services (+) → Drive API → Add, then redeploy.',
@@ -93,10 +94,10 @@ function updateTransferListFileContent_(fileId, blob, fileName) {
 }
 
 /**
- * Upload (or update in place) a transfer list .xlsx in the event's Transfer Lists folder.
- * Reuses the same Drive file ID when possible so vendor links stay stable.
+ * Upload (or update in place) a generator .xlsx in an event subfolder.
+ * Reuses the same Drive file ID when possible so share links stay stable.
  */
-function uploadTransferList_(payload) {
+function uploadEventSpreadsheet_(payload, subfolderName, activityType) {
   if (!payload.eventCode || !payload.fileName || !payload.dataBase64) {
     throw new Error('eventCode, fileName and dataBase64 required');
   }
@@ -109,18 +110,18 @@ function uploadTransferList_(payload) {
   var ev = findEventRow_(payload.eventRowId || '', payload.eventCode);
   var location = ev ? ev.location : payload.eventLocation || '';
 
-  var folder = getEventSubfolder_(payload.eventCode, location, TRANSFER_LISTS_SUBFOLDER_);
+  var folder = getEventSubfolder_(payload.eventCode, location, subfolderName);
 
   var mime =
     payload.mimeType ||
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
   var blob = Utilities.newBlob(bytes, mime, payload.fileName);
 
-  var existingFile = findTransferListDriveFile_(folder, payload.driveFileId, payload.fileName);
+  var existingFile = findDriveFileInFolder_(folder, payload.driveFileId, payload.fileName);
   var driveFile;
 
   if (existingFile) {
-    driveFile = updateTransferListFileContent_(existingFile.getId(), blob, payload.fileName);
+    driveFile = updateDriveFileContent_(existingFile.getId(), blob, payload.fileName);
   } else {
     driveFile = folder.createFile(blob);
     setOrgSharing_(driveFile);
@@ -130,7 +131,7 @@ function uploadTransferList_(payload) {
   var shareUrl = 'https://drive.google.com/file/d/' + fileId + '/view?usp=sharing';
 
   logActivity_(
-    'transfer_list_saved',
+    activityType,
     payload.eventCode,
     '',
     payload.fileName,
@@ -144,14 +145,26 @@ function uploadTransferList_(payload) {
   };
 }
 
-/** Find an existing transfer list file to update — by ID first, then by name in folder. */
-function findTransferListDriveFile_(folder, driveFileId, fileName) {
+/**
+ * Upload (or update in place) a transfer list .xlsx in the event's Transfer Lists folder.
+ */
+function uploadTransferList_(payload) {
+  return uploadEventSpreadsheet_(payload, TRANSFER_LISTS_SUBFOLDER_, 'transfer_list_saved');
+}
+
+/** Upload (or update in place) an AV equipment list .xlsx in the AV Equipment folder. */
+function uploadAVEquipment_(payload) {
+  return uploadEventSpreadsheet_(payload, AV_EQUIPMENT_SUBFOLDER_, 'av_equipment_saved');
+}
+
+/** Find an existing Drive file to update — by ID first, then by name in folder. */
+function findDriveFileInFolder_(folder, driveFileId, fileName) {
   if (driveFileId) {
     try {
       var byId = DriveApp.getFileById(driveFileId);
       if (!byId.isTrashed()) return byId;
     } catch (e) {
-      Logger.log('findTransferListDriveFile_ id lookup failed: ' + e);
+      Logger.log('findDriveFileInFolder_ id lookup failed: ' + e);
     }
   }
 

@@ -7,9 +7,15 @@
  * Route: /av-equipment
  */
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { fetchEvents } from '../api/client';
-import { exportAVEquipment } from '../utils/exportAVEquipment';
+import { Link, useSearchParams } from 'react-router-dom';
+import { fetchEvents, saveAVEquipmentToDrive } from '../api/client';
+import {
+  avEquipmentFilename,
+  avEquipmentToArrayBuffer,
+  exportAVEquipment,
+} from '../utils/exportAVEquipment';
+import { loadAVEquipment, saveAVEquipment } from '../utils/avEquipmentStore';
+import { useUser } from '../context/UserContext';
 import type { Event } from '../types';
 import { formatIsoDate } from '../utils/dateFormat';
 import './AVEquipmentPage.css';
@@ -146,10 +152,13 @@ function defaultItems(): AVItemState[] {
 // ─── Page component ───────────────────────────────────────────────────────────
 
 export function AVEquipmentPage() {
+  const [sp] = useSearchParams();
+  const { user } = useUser();
+
   const [setup, setSetup] = useState<AVSetup>({
-    eventCode:  '',
-    eventCity:  '',
-    eventDate:  '',
+    eventCode:  sp.get('code') ?? '',
+    eventCity:  sp.get('city') ?? '',
+    eventDate:  sp.get('dates') ?? '',
     setupStyle: 'Classroom',
     pax:        '',
     days:       1,
@@ -157,6 +166,13 @@ export function AVEquipmentPage() {
 
   const [items, setItems]         = useState<AVItemState[]>(defaultItems);
   const [exporting, setExporting] = useState(false);
+  const [saving, setSaving]       = useState(false);
+  const [savedAt, setSavedAt]     = useState<string | null>(null);
+  const [savedBy, setSavedBy]     = useState('');
+  const [driveLink, setDriveLink] = useState<string | null>(null);
+  const [driveFileId, setDriveFileId] = useState<string | null>(null);
+  const [linkCopied, setLinkCopied] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [events, setEvents]       = useState<Event[]>([]);
 
   useEffect(() => {
@@ -171,6 +187,28 @@ export function AVEquipmentPage() {
     }).catch(() => {});
   }, []);
 
+  useEffect(() => {
+    const code = sp.get('code');
+    if (!code) return;
+    const saved = loadAVEquipment(code);
+    if (!saved) return;
+    setSetup(saved.setup);
+    setItems(saved.items);
+    setSavedAt(saved.savedAt);
+    setSavedBy(saved.savedBy);
+    applyDriveMeta(saved);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function applyDriveMeta(saved: { driveUrl?: string; driveFileId?: string }) {
+    const id = saved.driveFileId || driveFileIdFromUrl(saved.driveUrl);
+    setDriveFileId(id ?? null);
+    setDriveLink(
+      saved.driveUrl ||
+        (id ? `https://drive.google.com/file/d/${id}/view?usp=sharing` : null),
+    );
+  }
+
   function pickEvent(code: string) {
     const ev = events.find((e) => e.code === code);
     if (!ev) return;
@@ -180,6 +218,19 @@ export function AVEquipmentPage() {
       eventCity: ev.location ?? '',
       eventDate: ev.startDate ? formatEventDate(ev.startDate) : '',
     }));
+    const saved = loadAVEquipment(ev.code);
+    if (saved) {
+      setSetup(saved.setup);
+      setItems(saved.items);
+      setSavedAt(saved.savedAt);
+      setSavedBy(saved.savedBy);
+      applyDriveMeta(saved);
+    } else {
+      setSavedAt(null);
+      setSavedBy('');
+      setDriveLink(null);
+      setDriveFileId(null);
+    }
   }
 
   function patchSetup<K extends keyof AVSetup>(field: K, value: AVSetup[K]) {
@@ -203,7 +254,70 @@ export function AVEquipmentPage() {
     }
   }
 
+  async function handleSave() {
+    if (!setup.eventCode) return;
+    setSaving(true);
+    setSaveError(null);
+    const now = new Date().toISOString();
+    const name = user?.name ?? 'Unknown';
+    const email = user?.email ?? '';
+    const fileName = avEquipmentFilename(setup);
+    let nextDriveUrl = driveLink;
+    let nextDriveFileId = driveFileId;
+
+    try {
+      const buffer = avEquipmentToArrayBuffer(setup, items);
+      const result = await saveAVEquipmentToDrive({
+        eventCode: setup.eventCode,
+        fileName,
+        dataBase64: arrayBufferToBase64(buffer),
+        uploadedBy: name,
+        actorEmail: email,
+        eventLocation: setup.eventCity,
+        driveFileId: driveFileId ?? undefined,
+      });
+      nextDriveUrl = result.driveUrl;
+      nextDriveFileId = result.driveFileId;
+      setDriveLink(result.driveUrl);
+      setDriveFileId(result.driveFileId);
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : 'Could not save to Google Drive');
+    }
+
+    saveAVEquipment(setup.eventCode, {
+      setup,
+      items,
+      savedAt: now,
+      savedBy: name,
+      savedByEmail: email,
+      driveUrl: nextDriveUrl ?? undefined,
+      driveFileId: nextDriveFileId ?? undefined,
+    });
+    setSavedAt(now);
+    setSavedBy(name);
+    setTimeout(() => setSaving(false), 800);
+  }
+
+  async function handleCopyLink() {
+    if (!driveLink) return;
+    try {
+      await navigator.clipboard.writeText(driveLink);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = driveLink;
+      ta.style.position = 'fixed';
+      ta.style.opacity = '0';
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    setLinkCopied(true);
+    setTimeout(() => setLinkCopied(false), 2000);
+  }
+
   const enabledItems = items.filter((it) => it.enabled);
+  const filename = avEquipmentFilename(setup);
 
   return (
     <div className="av-page">
@@ -225,7 +339,7 @@ export function AVEquipmentPage() {
                 Select active event
                 <select
                   className="av-select"
-                  value=""
+                  value={setup.eventCode}
                   onChange={(e) => pickEvent(e.target.value)}
                 >
                   <option value="">— pick event —</option>
@@ -495,17 +609,48 @@ export function AVEquipmentPage() {
             </div>
           </section>
 
-          {/* Export button */}
+          {/* Export + Save */}
           <div className="av-export-bar">
-            <button
-              className="av-btn av-btn--export"
-              onClick={handleExport}
-              disabled={exporting || enabledItems.length === 0}
-            >
-              {exporting ? 'Generating…' : '⬇ Export Equipment List (.xlsx)'}
-            </button>
+            <div className="av-filename">📄 {filename}</div>
+            {savedAt && (
+              <div className="av-saved-chip">
+                ✓ Saved{savedBy ? ` by ${savedBy}` : ''} · {new Date(savedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+              </div>
+            )}
+            {saveError && <p className="av-save-error">⚠ {saveError}</p>}
+            <div className="av-export-row">
+              <button
+                className="av-btn av-btn--export"
+                onClick={handleExport}
+                disabled={exporting || enabledItems.length === 0}
+              >
+                {exporting ? '⏳ Generating…' : '⬇ Export Equipment List (.xlsx)'}
+              </button>
+              {driveLink && (
+                <button
+                  type="button"
+                  className="av-btn av-btn--link"
+                  onClick={handleCopyLink}
+                  title="Copy Google Drive link to clipboard"
+                >
+                  {linkCopied ? '✓ Copied!' : '🔗 Link'}
+                </button>
+              )}
+              <button
+                type="button"
+                className="av-btn av-btn--save"
+                onClick={handleSave}
+                disabled={saving || !setup.eventCode || enabledItems.length === 0}
+                title={!setup.eventCode ? 'Enter an event code first' : 'Save equipment list to Google Drive'}
+              >
+                {saving ? '⏳ Saving…' : '💾 Save'}
+              </button>
+            </div>
             {enabledItems.length === 0 && (
               <p className="av-export-hint">Select at least one equipment item above.</p>
+            )}
+            {!setup.eventCode && enabledItems.length > 0 && (
+              <p className="av-export-hint">Enter an event code to enable saving to Google Drive.</p>
             )}
           </div>
         </aside>
@@ -600,4 +745,17 @@ function resolvePreviewAmount(item: AVItemState): number {
 
 function formatEventDate(dateStr: string): string {
   return formatIsoDate(dateStr);
+}
+
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+  return btoa(binary);
+}
+
+function driveFileIdFromUrl(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+  const m = url.match(/\/file\/d\/([^/?#]+)/);
+  return m?.[1];
 }
