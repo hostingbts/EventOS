@@ -13,6 +13,8 @@ struct DashboardView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
+                        QuickAccessRow()
+
                         if vm.loading {
                             ProgressView("Loading events…").tint(Theme.green)
                                 .frame(maxWidth: .infinity)

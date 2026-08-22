@@ -65,4 +65,41 @@ enum EventOSService {
     static func fetchTeamOverview() async throws -> TeamOverview {
         try await APIClient.get("team")
     }
+
+    // MARK: Task templates
+
+    static func fetchTemplatesWithFiles() async throws -> [TaskTemplateWithFiles] {
+        struct Response: Codable { var templates: [TaskTemplateWithFiles] }
+        let res: Response = try await APIClient.get("templatesList", ["withFiles": "true"])
+        return res.templates
+    }
+
+    static func createTemplate(_ payload: [String: Any]) async throws -> TaskTemplate {
+        try await APIClient.post("templateCreate", payload)
+    }
+
+    static func updateTemplate(templateId: String, updates: [String: Any], actorEmail: String) async throws -> TaskTemplate {
+        try await APIClient.post("templateUpdate", ["templateId": templateId, "updates": updates, "actorEmail": actorEmail])
+    }
+
+    /// Soft delete — the backend just flips `active` to `'no'`; there is no hard delete.
+    @discardableResult
+    static func deactivateTemplate(templateId: String, actorEmail: String) async throws -> TaskTemplate {
+        try await APIClient.post("templateDelete", ["templateId": templateId, "actorEmail": actorEmail])
+    }
+
+    static func uploadTemplateFile(templateId: String, fileName: String, mimeType: String, dataBase64: String, actorEmail: String) async throws -> TemplateFile {
+        try await APIClient.post("templateFileUpload", [
+            "templateId": templateId, "fileName": fileName, "mimeType": mimeType,
+            "dataBase64": dataBase64, "actorEmail": actorEmail,
+        ])
+    }
+
+    static func applyTemplates(eventCode: String, eventRowId: String, templateIds: [String], actorEmail: String) async throws -> [EventTask] {
+        struct Response: Codable { var tasks: [EventTask] }
+        let res: Response = try await APIClient.post("applyTemplates", [
+            "eventCode": eventCode, "eventRowId": eventRowId, "templateIds": templateIds, "actorEmail": actorEmail,
+        ])
+        return res.tasks
+    }
 }
