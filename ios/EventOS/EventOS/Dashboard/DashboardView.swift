@@ -4,43 +4,55 @@ struct DashboardView: View {
     @StateObject private var vm = DashboardViewModel()
     @EnvironmentObject private var session: SessionStore
     @State private var showSignOut = false
+    @State private var showCalendar = false
 
     var body: some View {
-        VStack(spacing: 0) {
-            header
+        ZStack(alignment: .bottomTrailing) {
+            VStack(spacing: 0) {
+                header
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    if vm.loading {
-                        ProgressView("Loading events…").tint(Theme.green)
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 40)
-                    } else if let error = vm.error {
-                        Text(error).foregroundStyle(Theme.statusRisk)
-                    } else {
-                        if let featured = vm.featuredEvent {
-                            featuredCard(featured)
-                        }
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 24) {
+                        if vm.loading {
+                            ProgressView("Loading events…").tint(Theme.green)
+                                .frame(maxWidth: .infinity)
+                                .padding(.top, 40)
+                        } else if let error = vm.error {
+                            Text(error).foregroundStyle(Theme.statusRisk)
+                        } else {
+                            if let featured = vm.featuredEvent {
+                                featuredCard(featured)
+                            }
 
-                        eventsSection
+                            eventsSection
 
-                        if !vm.completedGroups.isEmpty {
-                            completedSection
+                            if !vm.completedGroups.isEmpty {
+                                completedSection
+                            }
                         }
                     }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 20)
+                    .padding(.bottom, 32)
                 }
-                .padding(.horizontal, 16)
-                .padding(.top, 20)
-                .padding(.bottom, 32)
+                .background(Theme.bg)
+                .refreshable { await vm.load() }
             }
-            .background(Theme.bg)
-            .refreshable { await vm.load() }
+
+            FloatingActionButton(systemImage: "calendar") {
+                showCalendar = true
+            }
+            .padding(.trailing, 20)
+            .padding(.bottom, 16)
         }
         .background(Theme.bg)
         .navigationBarHidden(true)
         .task { await vm.load() }
         .confirmationDialog("Account", isPresented: $showSignOut) {
             Button("Sign out", role: .destructive) { session.signOut() }
+        }
+        .sheet(isPresented: $showCalendar) {
+            CalendarView()
         }
     }
 
