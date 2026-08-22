@@ -12,27 +12,34 @@ struct LoginView: View {
             VStack(spacing: 24) {
                 brand
 
-                switch vm.step {
-                case .email: emailStep
-                case .password: passwordStep
-                case .notFound: notFoundStep
-                case .register: registerStep
+                VStack(spacing: 16) {
+                    switch vm.step {
+                    case .email: emailStep
+                    case .password: passwordStep
+                    case .notFound: notFoundStep
+                    case .register: registerStep
+                    }
                 }
+                .cardStyle(padding: 24)
             }
             .padding(24)
             .frame(maxWidth: 420)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(.systemGroupedBackground))
+        .background(Theme.bg)
     }
 
     private var brand: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 44))
-                .foregroundStyle(.teal)
+        VStack(spacing: 10) {
+            ZStack {
+                Circle().fill(Theme.headerGradient).frame(width: 76, height: 76)
+                Image(systemName: "checkmark.seal.fill")
+                    .font(.system(size: 34))
+                    .foregroundStyle(Theme.green)
+            }
             Text("EventOS")
-                .font(.title.bold())
+                .font(.largeTitle.bold())
+                .foregroundStyle(Theme.textPrimary)
         }
         .padding(.top, 40)
     }
@@ -42,24 +49,36 @@ struct LoginView: View {
             if let error = vm.error {
                 Text(error)
                     .font(.footnote)
-                    .foregroundStyle(.red)
+                    .foregroundStyle(Theme.statusRisk)
                     .multilineTextAlignment(.center)
             }
         }
     }
 
+    private func fieldLabel(_ text: String) -> some View {
+        Text(text).font(.caption).foregroundStyle(Theme.textSecondary)
+    }
+
+    private func styledField() -> some View {
+        RoundedRectangle(cornerRadius: Theme.cornerSmall, style: .continuous)
+            .fill(Theme.cardAlt)
+    }
+
     private var emailStep: some View {
         VStack(spacing: 16) {
-            Text("Welcome to EventOS").font(.title2.bold())
+            Text("Welcome to EventOS").font(.title2.bold()).foregroundStyle(Theme.textPrimary)
             Text("Don't have an account? Enter your email to get started.")
                 .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(Theme.textSecondary)
                 .multilineTextAlignment(.center)
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Work email").font(.caption).foregroundStyle(.secondary)
+                fieldLabel("Work email")
                 TextField("name@company.com", text: $vm.email)
-                    .textFieldStyle(.roundedBorder)
+                    .textFieldStyle(.plain)
+                    .padding(12)
+                    .background(styledField())
+                    .foregroundStyle(Theme.textPrimary)
                     .keyboardType(.emailAddress)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
@@ -74,12 +93,12 @@ struct LoginView: View {
                 Task { await vm.continueWithEmail() }
             } label: {
                 if vm.loading {
-                    ProgressView().frame(maxWidth: .infinity)
+                    ProgressView().tint(.black).frame(maxWidth: .infinity)
                 } else {
                     Text("Continue to EventOS").frame(maxWidth: .infinity)
                 }
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(StakePrimaryButtonStyle())
             .disabled(vm.loading)
         }
         .onAppear { focusedField = .email }
@@ -88,13 +107,16 @@ struct LoginView: View {
     private var passwordStep: some View {
         VStack(spacing: 16) {
             backButton(action: vm.goBackToEmail)
-            Text("Welcome back").font(.title2.bold())
-            Text(vm.email).font(.footnote).foregroundStyle(.secondary)
+            Text("Welcome back").font(.title2.bold()).foregroundStyle(Theme.textPrimary)
+            Text(vm.email).font(.footnote).foregroundStyle(Theme.textSecondary)
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Password").font(.caption).foregroundStyle(.secondary)
+                fieldLabel("Password")
                 SecureField("Enter your password", text: $vm.password)
-                    .textFieldStyle(.roundedBorder)
+                    .textFieldStyle(.plain)
+                    .padding(12)
+                    .background(styledField())
+                    .foregroundStyle(Theme.textPrimary)
                     .focused($focusedField, equals: .password)
                     .submitLabel(.go)
                     .onSubmit { Task { await vm.signIn(session: session) } }
@@ -106,12 +128,12 @@ struct LoginView: View {
                 Task { await vm.signIn(session: session) }
             } label: {
                 if vm.loading {
-                    ProgressView().frame(maxWidth: .infinity)
+                    ProgressView().tint(.black).frame(maxWidth: .infinity)
                 } else {
                     Text("Sign in").frame(maxWidth: .infinity)
                 }
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(StakePrimaryButtonStyle())
             .disabled(vm.loading)
         }
         .onAppear { focusedField = .password }
@@ -120,9 +142,10 @@ struct LoginView: View {
     private var notFoundStep: some View {
         VStack(spacing: 16) {
             backButton(action: vm.goBackToEmail)
-            Text("No account found").font(.title2.bold())
+            Text("No account found").font(.title2.bold()).foregroundStyle(Theme.textPrimary)
             Text("We couldn't find an account for **\(vm.email)**.")
                 .font(.subheadline)
+                .foregroundStyle(Theme.textSecondary)
                 .multilineTextAlignment(.center)
 
             errorText
@@ -133,34 +156,43 @@ struct LoginView: View {
             } label: {
                 Text("Create an account").frame(maxWidth: .infinity)
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(StakePrimaryButtonStyle())
         }
     }
 
     private var registerStep: some View {
         VStack(spacing: 16) {
             backButton { vm.step = .notFound }
-            Text("Create your account").font(.title2.bold())
-            Text(vm.email).font(.footnote).foregroundStyle(.secondary)
+            Text("Create your account").font(.title2.bold()).foregroundStyle(Theme.textPrimary)
+            Text(vm.email).font(.footnote).foregroundStyle(Theme.textSecondary)
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Full name").font(.caption).foregroundStyle(.secondary)
+                fieldLabel("Full name")
                 TextField("Jane Doe", text: $vm.name)
-                    .textFieldStyle(.roundedBorder)
+                    .textFieldStyle(.plain)
+                    .padding(12)
+                    .background(styledField())
+                    .foregroundStyle(Theme.textPrimary)
                     .focused($focusedField, equals: .name)
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Password").font(.caption).foregroundStyle(.secondary)
+                fieldLabel("Password")
                 SecureField("At least 8 characters", text: $vm.password)
-                    .textFieldStyle(.roundedBorder)
+                    .textFieldStyle(.plain)
+                    .padding(12)
+                    .background(styledField())
+                    .foregroundStyle(Theme.textPrimary)
                     .focused($focusedField, equals: .password)
             }
 
             VStack(alignment: .leading, spacing: 6) {
-                Text("Confirm password").font(.caption).foregroundStyle(.secondary)
+                fieldLabel("Confirm password")
                 SecureField("Repeat password", text: $vm.confirmPassword)
-                    .textFieldStyle(.roundedBorder)
+                    .textFieldStyle(.plain)
+                    .padding(12)
+                    .background(styledField())
+                    .foregroundStyle(Theme.textPrimary)
                     .focused($focusedField, equals: .confirm)
                     .submitLabel(.go)
                     .onSubmit { Task { await vm.register(session: session) } }
@@ -172,12 +204,12 @@ struct LoginView: View {
                 Task { await vm.register(session: session) }
             } label: {
                 if vm.loading {
-                    ProgressView().frame(maxWidth: .infinity)
+                    ProgressView().tint(.black).frame(maxWidth: .infinity)
                 } else {
                     Text("Create account").frame(maxWidth: .infinity)
                 }
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(StakePrimaryButtonStyle())
             .disabled(vm.loading)
         }
         .onAppear { focusedField = .name }
@@ -187,9 +219,23 @@ struct LoginView: View {
         HStack {
             Button(action: action) {
                 Label("Back", systemImage: "chevron.left")
+                    .foregroundStyle(Theme.textSecondary)
             }
             Spacer()
         }
+    }
+}
+
+/// Bright green pill button, mirroring Stake's primary CTAs ("Continue to EventOS", "Browse", "Invest").
+struct StakePrimaryButtonStyle: ButtonStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(.headline)
+            .foregroundStyle(.black)
+            .padding(.vertical, 14)
+            .background(Theme.green)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.cornerSmall, style: .continuous))
+            .opacity(configuration.isPressed ? 0.85 : 1)
     }
 }
 

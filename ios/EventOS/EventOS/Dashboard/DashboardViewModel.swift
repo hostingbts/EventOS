@@ -160,6 +160,34 @@ final class DashboardViewModel: ObservableObject {
         events.filter { !isCompleted($0) }.filter(matchesFilter).count
     }
 
+    /// The single most urgent active event — worst health tier first, then soonest to start.
+    /// Powers the "Featured event" hero card.
+    var featuredEvent: Event? {
+        let active = events.filter { !isCompleted($0) }
+        guard !active.isEmpty else { return nil }
+        func rank(_ e: Event) -> Int {
+            switch healthByCode[e.code]?.tier {
+            case "critical": return 0
+            case "at-risk": return 1
+            case "attention": return 2
+            default: return 3
+            }
+        }
+        return active.min { a, b in
+            let ra = rank(a), rb = rank(b)
+            if ra != rb { return ra < rb }
+            let da = daysUntilStart(a) ?? Int.max
+            let db = daysUntilStart(b) ?? Int.max
+            return da < db
+        }
+    }
+
+    /// A handful of active events (excluding the featured one) for the quick-glance grid.
+    var gridEvents: [Event] {
+        let active = events.filter { !isCompleted($0) }.filter(matchesFilter)
+        return active.filter { $0.rowId != featuredEvent?.rowId }.prefix(4).map { $0 }
+    }
+
     var summary: (total: Int, avgCompletion: Int, onTrack: Int, attention: Int, atRisk: Int, critical: Int) {
         let healths = events.filter { !isCompleted($0) }.compactMap { healthByCode[$0.code] }
         guard !healths.isEmpty else { return (0, 0, 0, 0, 0, 0) }

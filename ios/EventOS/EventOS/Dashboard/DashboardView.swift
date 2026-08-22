@@ -2,201 +2,337 @@ import SwiftUI
 
 struct DashboardView: View {
     @StateObject private var vm = DashboardViewModel()
+    @EnvironmentObject private var session: SessionStore
+    @State private var showSignOut = false
 
     var body: some View {
-        List {
-            if vm.summary.total > 0 {
-                Section {
-                    HealthSummaryRow(summary: vm.summary)
-                }
-            }
+        VStack(spacing: 0) {
+            header
 
-            Section {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(spacing: 8) {
-                        ForEach(DashboardFilter.allCases) { filter in
-                            FilterChip(filter: filter, isSelected: vm.filter == filter) {
-                                vm.filter = filter
-                            }
+            ScrollView {
+                VStack(alignment: .leading, spacing: 24) {
+                    if vm.loading {
+                        ProgressView("Loading events…").tint(Theme.green)
+                            .frame(maxWidth: .infinity)
+                            .padding(.top, 40)
+                    } else if let error = vm.error {
+                        Text(error).foregroundStyle(Theme.statusRisk)
+                    } else {
+                        if let featured = vm.featuredEvent {
+                            featuredCard(featured)
+                        }
+
+                        eventsSection
+
+                        if !vm.completedGroups.isEmpty {
+                            completedSection
                         }
                     }
                 }
-                .listRowInsets(EdgeInsets())
-                .padding(.vertical, 4)
-                .padding(.horizontal, 12)
+                .padding(.horizontal, 16)
+                .padding(.top, 20)
+                .padding(.bottom, 32)
+            }
+            .background(Theme.bg)
+            .refreshable { await vm.load() }
+        }
+        .background(Theme.bg)
+        .navigationBarHidden(true)
+        .task { await vm.load() }
+        .confirmationDialog("Account", isPresented: $showSignOut) {
+            Button("Sign out", role: .destructive) { session.signOut() }
+        }
+    }
+
+    // MARK: Header (green gradient zone)
+
+    private var header: some View {
+        VStack(spacing: 20) {
+            HStack {
+                Label("Home", systemImage: "house.fill")
+                    .font(.title2.bold())
+                    .foregroundStyle(.white)
+                Spacer()
+                Button { Task { await vm.load() } } label: {
+                    Image(systemName: "arrow.clockwise")
+                        .foregroundStyle(.white)
+                        .padding(10)
+                        .background(.white.opacity(0.15))
+                        .clipShape(Circle())
+                }
+                Button { showSignOut = true } label: {
+                    Image(systemName: "person.fill")
+                        .foregroundStyle(.white)
+                        .padding(10)
+                        .background(.white.opacity(0.15))
+                        .clipShape(Circle())
+                }
             }
 
-            if vm.loading {
-                ProgressView("Loading events…")
-            } else if let error = vm.error {
-                Text(error).foregroundStyle(.red)
-            } else if vm.events.isEmpty {
-                Text("No events yet.").foregroundStyle(.secondary)
-            }
+            if vm.summary.total > 0 {
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text("Portfolio completion").font(.subheadline).foregroundStyle(.white.opacity(0.85))
+                        Spacer()
+                        Text("\(vm.summary.total) active").font(.caption).foregroundStyle(.white.opacity(0.7))
+                    }
+                    Text("\(vm.summary.avgCompletion)%").font(.system(size: 40, weight: .bold)).foregroundStyle(.white)
 
-            ForEach(vm.activeGroups) { group in
-                Section(header: monthHeader(group)) {
-                    ForEach(group.events) { event in
-                        NavigationLink {
-                            EventWorkspaceView(eventCode: event.code)
-                        } label: {
-                            EventRow(event: event, health: vm.healthByCode[event.code], daysUntilStart: vm.daysUntilStart(event), isHappening: vm.isHappening(event))
+                    HStack(spacing: 10) {
+                        headerStatPill("\(vm.summary.onTrack)", "On track")
+                        headerStatPill("\(vm.summary.attention)", "Attention")
+                        headerStatPill("\(vm.summary.atRisk + vm.summary.critical)", "At risk")
+                    }
+                }
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 8)
+        .padding(.bottom, 24)
+        .background(Theme.headerGradient)
+    }
+
+    private func headerStatPill(_ value: String, _ label: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(value).font(.headline).foregroundStyle(.white)
+            Text(label).font(.caption2).foregroundStyle(.white.opacity(0.75))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 12)
+        .background(.white.opacity(0.14))
+        .clipShape(RoundedRectangle(cornerRadius: Theme.cornerSmall, style: .continuous))
+    }
+
+    // MARK: Featured event hero card
+
+    private func featuredCard(_ event: Event) -> some View {
+        let health = vm.healthByCode[event.code]
+        let tierColor = Theme.tierColor(health?.tier)
+
+        return NavigationLink {
+            EventWorkspaceView(eventCode: event.code)
+        } label: {
+            ZStack(alignment: .bottomLeading) {
+                GradientTile(colors: [tierColor.opacity(0.55), Theme.greenDeep], glyph: "star.fill", height: 190)
+
+                VStack {
+                    HStack {
+                        Label("Featured event", systemImage: "sparkles")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Theme.green)
+                        Spacer()
+                        OverlayBadge(text: Theme.tierLabel(health?.tier), systemImage: "leaf.fill")
+                    }
+                    Spacer()
+                }
+                .padding(14)
+
+                HStack {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("\(event.code) · \(event.location.isEmpty ? "—" : event.location)")
+                            .font(.headline).foregroundStyle(.white)
+                        if let health {
+                            HStack(spacing: 5) {
+                                Image(systemName: "arrow.up.circle.fill").foregroundStyle(Theme.green)
+                                Text("\(health.completion)% complete").foregroundStyle(.white)
+                                Text("· \(health.doneTasks)/\(health.totalTasks) tasks").foregroundStyle(.white.opacity(0.75))
+                            }
+                            .font(.footnote.weight(.semibold))
                         }
+                    }
+                    Spacer()
+                }
+                .padding(14)
+                .background(
+                    LinearGradient(colors: [.black.opacity(0.75), .clear], startPoint: .bottom, endPoint: .top)
+                        .frame(height: 100),
+                    alignment: .bottom
+                )
+            }
+            .frame(height: 190)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.corner, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: Theme.corner, style: .continuous).stroke(Theme.border, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: Events section (filters + grid + full list)
+
+    private var eventsSection: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            SectionHeaderRow(icon: "calendar", title: "Events")
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(DashboardFilter.allCases) { filter in
+                        PillChip(label: filter.label, isSelected: vm.filter == filter) {
+                            vm.filter = filter
+                        }
+                    }
+                }
+            }
+
+            if vm.events.isEmpty {
+                Text("No events yet.").foregroundStyle(Theme.textSecondary)
+            } else if !vm.gridEvents.isEmpty {
+                LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 12) {
+                    ForEach(vm.gridEvents) { event in
+                        GridEventCard(event: event, health: vm.healthByCode[event.code])
                     }
                 }
             }
 
             if !vm.loading && vm.activeCount == 0 && !vm.events.isEmpty {
-                Text("No active events match the current filter.").foregroundStyle(.secondary)
+                Text("No active events match the current filter.").foregroundStyle(Theme.textSecondary)
             }
 
-            if !vm.completedGroups.isEmpty {
-                Section {
-                    Button {
-                        vm.showCompleted.toggle()
+            ForEach(vm.activeGroups) { group in
+                monthGroupSection(group)
+            }
+        }
+    }
+
+    private func monthGroupSection(_ group: MonthGroup) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text(group.month).font(.subheadline.bold()).foregroundStyle(Theme.textPrimary)
+                Spacer()
+                Text("\(group.events.count)").font(.caption).foregroundStyle(Theme.textSecondary)
+            }
+            VStack(spacing: 10) {
+                ForEach(group.events) { event in
+                    NavigationLink {
+                        EventWorkspaceView(eventCode: event.code)
                     } label: {
-                        HStack {
-                            Text("Completed events")
-                            Spacer()
-                            Text("\(vm.completedGroups.reduce(0) { $0 + $1.events.count })").foregroundStyle(.secondary)
-                            Image(systemName: vm.showCompleted ? "chevron.up" : "chevron.down")
-                        }
+                        EventListCard(
+                            event: event,
+                            health: vm.healthByCode[event.code],
+                            daysUntilStart: vm.daysUntilStart(event),
+                            isHappening: vm.isHappening(event)
+                        )
                     }
-                    .foregroundStyle(.primary)
-                }
-
-                if vm.showCompleted {
-                    ForEach(vm.completedGroups) { group in
-                        Section(header: monthHeader(group)) {
-                            ForEach(group.events) { event in
-                                NavigationLink {
-                                    EventWorkspaceView(eventCode: event.code)
-                                } label: {
-                                    EventRow(event: event, health: vm.healthByCode[event.code], daysUntilStart: nil, isHappening: false)
-                                }
-                            }
-                        }
-                    }
+                    .buttonStyle(.plain)
                 }
             }
         }
-        .listStyle(.insetGrouped)
-        .navigationTitle("Event Operations")
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Button {
-                    Task { await vm.load() }
-                } label: {
-                    Image(systemName: "arrow.clockwise")
+    }
+
+    private var completedSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Button {
+                withAnimation { vm.showCompleted.toggle() }
+            } label: {
+                HStack {
+                    Text("Completed events").font(.subheadline.bold())
+                    Spacer()
+                    Text("\(vm.completedGroups.reduce(0) { $0 + $1.events.count })").foregroundStyle(Theme.textSecondary)
+                    Image(systemName: vm.showCompleted ? "chevron.up" : "chevron.down")
+                        .foregroundStyle(Theme.textSecondary)
                 }
-                .disabled(vm.loading)
+                .foregroundStyle(Theme.textPrimary)
+                .padding(14)
+                .background(Theme.cardAlt)
+                .clipShape(RoundedRectangle(cornerRadius: Theme.cornerSmall, style: .continuous))
+            }
+            .buttonStyle(.plain)
+
+            if vm.showCompleted {
+                ForEach(vm.completedGroups) { group in
+                    monthGroupSection(group)
+                }
             }
         }
-        .task { await vm.load() }
-        .refreshable { await vm.load() }
-    }
-
-    private func monthHeader(_ group: MonthGroup) -> some View {
-        HStack {
-            Text(group.month)
-            Spacer()
-            Text("\(group.events.count)")
-        }
     }
 }
 
-private struct HealthSummaryRow: View {
-    let summary: (total: Int, avgCompletion: Int, onTrack: Int, attention: Int, atRisk: Int, critical: Int)
+// MARK: - Grid card (2-column quick glance, mirrors Stake's property grid tiles)
+
+private struct GridEventCard: View {
+    let event: Event
+    let health: EventHealth?
 
     var body: some View {
-        HStack(spacing: 16) {
-            stat("\(summary.avgCompletion)%", "Completion")
-            stat("\(summary.onTrack)", "On track", color: .green)
-            stat("\(summary.attention)", "Attention", color: .orange)
-            stat("\(summary.atRisk + summary.critical)", "At risk", color: .red)
-        }
-    }
+        VStack(alignment: .leading, spacing: 8) {
+            ZStack(alignment: .topLeading) {
+                GradientTile(colors: [Theme.tierColor(health?.tier).opacity(0.5), Theme.card], glyph: "building.2.fill", height: 110)
+                VStack {
+                    HStack {
+                        if let health, health.totalTasks > 0 {
+                            OverlayBadge(text: "\(health.totalTasks) tasks", systemImage: "checklist")
+                        } else {
+                            OverlayBadge(text: "New", systemImage: "sparkles", tint: Theme.green)
+                        }
+                        Spacer()
+                    }
+                    Spacer()
+                    HStack {
+                        OverlayBadge(text: Theme.tierLabel(health?.tier))
+                        Spacer()
+                    }
+                }
+                .padding(8)
+            }
 
-    private func stat(_ value: String, _ label: String, color: Color = .primary) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(value).font(.title3.bold()).foregroundStyle(color)
-            Text(label).font(.caption2).foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(event.code).font(.subheadline.bold()).foregroundStyle(Theme.textPrimary)
+                Text(event.location.isEmpty ? "—" : event.location)
+                    .font(.caption).foregroundStyle(Theme.textSecondary).lineLimit(1)
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
-private struct FilterChip: View {
-    let filter: DashboardFilter
-    let isSelected: Bool
-    let action: () -> Void
+// MARK: - Full list row card (month-grouped list, mirrors Stake's full property list rows)
 
-    var body: some View {
-        Button(action: action) {
-            Text(filter.label)
-                .font(.footnote.weight(.medium))
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(isSelected ? Color.accentColor : Color(.secondarySystemFill))
-                .foregroundStyle(isSelected ? Color.white : Color.primary)
-                .clipShape(Capsule())
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-private struct EventRow: View {
+private struct EventListCard: View {
     let event: Event
     let health: EventHealth?
     let daysUntilStart: Int?
     let isHappening: Bool
 
-    private var tierColor: Color {
-        switch health?.tier {
-        case "on-track": return .green
-        case "attention": return .orange
-        case "at-risk": return .red
-        case "critical": return .red
-        default: return .gray
-        }
-    }
-
     var body: some View {
         HStack(spacing: 12) {
-            RoundedRectangle(cornerRadius: 2).fill(tierColor).frame(width: 4)
+            RoundedRectangle(cornerRadius: 3).fill(Theme.tierColor(health?.tier)).frame(width: 5, height: 44)
 
             VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text(event.code).font(.headline)
+                HStack(spacing: 6) {
+                    Text(event.code).font(.headline).foregroundStyle(Theme.textPrimary)
                     if event.venue.trimmingCharacters(in: .whitespaces).isEmpty {
                         Image(systemName: "exclamationmark.triangle.fill")
-                            .foregroundStyle(.orange)
-                            .font(.caption)
+                            .foregroundStyle(Theme.statusAttention).font(.caption)
                     }
                     if isHappening {
-                        Text("● Now").font(.caption2.bold()).foregroundStyle(.green)
+                        Text("● Now").font(.caption2.bold()).foregroundStyle(Theme.green)
                     } else if let days = daysUntilStart, days >= 0, days <= 7 {
-                        Text(days == 0 ? "Today" : "In \(days)d").font(.caption2.bold()).foregroundStyle(.orange)
+                        Text(days == 0 ? "Today" : "In \(days)d").font(.caption2.bold()).foregroundStyle(Theme.statusAttention)
                     }
                 }
-                Text(event.location.isEmpty ? "—" : event.location)
-                    .font(.subheadline).foregroundStyle(.secondary)
-                Text(event.dates).font(.caption).foregroundStyle(.secondary)
+                Text(event.location.isEmpty ? "—" : event.location).font(.subheadline).foregroundStyle(Theme.textSecondary)
+                Text(event.dates).font(.caption).foregroundStyle(Theme.textTertiary)
             }
 
             Spacer()
 
             if let health {
                 VStack(alignment: .trailing, spacing: 4) {
-                    Text("\(health.completion)%").font(.subheadline.bold())
-                    Text("\(health.doneTasks)/\(health.totalTasks)").font(.caption2).foregroundStyle(.secondary)
+                    Text("\(health.completion)%").font(.subheadline.bold()).foregroundStyle(Theme.textPrimary)
+                    Text("\(health.doneTasks)/\(health.totalTasks)").font(.caption2).foregroundStyle(Theme.textSecondary)
                 }
             }
+            Image(systemName: "chevron.right").font(.caption).foregroundStyle(Theme.textTertiary)
         }
-        .padding(.vertical, 4)
+        .padding(12)
+        .background(Theme.card)
+        .clipShape(RoundedRectangle(cornerRadius: Theme.cornerSmall, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: Theme.cornerSmall, style: .continuous).stroke(Theme.border, lineWidth: 1)
+        )
     }
 }
 
 #Preview {
-    NavigationStack { DashboardView() }
+    NavigationStack { DashboardView() }.environmentObject(SessionStore())
 }

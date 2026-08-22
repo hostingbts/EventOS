@@ -6,7 +6,9 @@ struct RootView: View {
     var body: some View {
         Group {
             if !session.isReady {
-                ProgressView()
+                ProgressView().tint(Theme.green)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Theme.bg)
             } else if session.user != nil {
                 RootTabView()
             } else {
@@ -22,12 +24,13 @@ struct RootTabView: View {
             NavigationStack {
                 DashboardView()
             }
-            .tabItem { Label("Events", systemImage: "calendar") }
+            .tabItem { Label("Home", systemImage: "house.fill") }
 
             NavigationStack {
                 TeamView()
             }
-            .tabItem { Label("Team", systemImage: "person.2") }
+            .tabItem { Label("Team", systemImage: "person.2.fill") }
         }
+        .tint(Theme.green)
     }
 }
