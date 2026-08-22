@@ -1,0 +1,175 @@
+import Foundation
+
+enum DashboardFilter: String, CaseIterable, Identifiable {
+    case all, attention, critical, missingSow, missingVenue
+
+    var id: String { rawValue }
+
+    var label: String {
+        switch self {
+        case .all: return "All active"
+        case .attention: return "Needs attention"
+        case .critical: return "At risk"
+        case .missingSow: return "Missing SOW"
+        case .missingVenue: return "Missing venue"
+        }
+    }
+}
+
+struct MonthGroup: Identifiable {
+    var month: String
+    var events: [Event]
+    var id: String { month }
+}
+
+private let completedThresholdDays = 15
+private let imminentDays = 7
+
+private let isoDayFormatter: ISO8601DateFormatter = {
+    let f = ISO8601DateFormatter()
+    f.formatOptions = [.withFullDate]
+    return f
+}()
+
+func parseFlexibleDate(_ raw: String?) -> Date? {
+    guard let raw, !raw.isEmpty else { return nil }
+    if let d = isoDayFormatter.date(from: String(raw.prefix(10))) { return d }
+    let formatter = DateFormatter()
+    formatter.locale = Locale(identifier: "en_US_POSIX")
+    for fmt in ["yyyy-MM-dd'T'HH:mm:ss", "yyyy-MM-dd", "MM/dd/yyyy"] {
+        formatter.dateFormat = fmt
+        if let d = formatter.date(from: raw) { return d }
+    }
+    return nil
+}
+
+@MainActor
+final class DashboardViewModel: ObservableObject {
+    @Published var events: [Event] = []
+    @Published var healthByCode: [String: EventHealth] = [:]
+    @Published var filter: DashboardFilter = .all
+    @Published var loading = true
+    @Published var error: String?
+    @Published var showCompleted = false
+
+    func load() async {
+        loading = true
+        error = nil
+        async let eventsResult = EventOSService.fetchEvents()
+        async let healthResult = EventOSService.fetchDashboardHealth()
+        do {
+            let (data, health) = try await (eventsResult, healthResult)
+            events = data.events
+            healthByCode = health
+        } catch {
+            self.error = error.localizedDescription
+        }
+        loading = false
+    }
+
+    private func isCompleted(_ event: Event) -> Bool {
+        guard let end = parseFlexibleDate(event.endDate) else { return false }
+        let days = Calendar.current.dateComponents([.day], from: end, to: Date()).day ?? 0
+        return days > completedThresholdDays
+    }
+
+    func daysUntilStart(_ event: Event) -> Int? {
+        guard let start = parseFlexibleDate(event.startDate) else { return nil }
+        let cal = Calendar.current
+        let startDay = cal.startOfDay(for: start)
+        let today = cal.startOfDay(for: Date())
+        return cal.dateComponents([.day], from: today, to: startDay).day
+    }
+
+    func isHappening(_ event: Event) -> Bool {
+        guard let start = parseFlexibleDate(event.startDate) else { return false }
+        let today = Date()
+        if start > today { return false }
+        if let end = parseFlexibleDate(event.endDate), end < today { return false }
+        return true
+    }
+
+    private func matchesFilter(_ event: Event) -> Bool {
+        switch filter {
+        case .all: return true
+        case .attention:
+            return missingSow(event) || missingVenue(event) || lemOpen(event)
+        case .missingSow: return missingSow(event)
+        case .missingVenue: return missingVenue(event)
+        case .critical:
+            let tier = healthByCode[event.code]?.tier
+            return tier == "critical" || tier == "at-risk"
+        }
+    }
+
+    private func missingSow(_ event: Event) -> Bool {
+        let sow = event.sow.trimmingCharacters(in: .whitespaces).lowercased()
+        return sow.isEmpty || sow == "??"
+    }
+    private func missingVenue(_ event: Event) -> Bool {
+        event.venue.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+    private func lemOpen(_ event: Event) -> Bool {
+        event.lem.trimmingCharacters(in: .whitespaces).lowercased() != "closed"
+    }
+
+    private func monthLabel(for event: Event) -> String {
+        guard let date = parseFlexibleDate(event.startDate) else {
+            return event.monthGroup.isEmpty ? "Unscheduled" : event.monthGroup
+        }
+        let formatter = DateFormatter()
+        formatter.dateFormat = "LLLL yyyy"
+        return formatter.string(from: date)
+    }
+
+    private func groupByMonth(_ list: [Event], ascending: Bool) -> [MonthGroup] {
+        var buckets: [String: (events: [Event], anchor: Date)] = [:]
+        for event in list {
+            let label = monthLabel(for: event)
+            let anchor = parseFlexibleDate(event.startDate) ?? Date(timeIntervalSince1970: 0)
+            buckets[label, default: ([], anchor)].events.append(event)
+        }
+        for key in buckets.keys {
+            buckets[key]!.events.sort { a, b in
+                let da = parseFlexibleDate(a.startDate)
+                let db = parseFlexibleDate(b.startDate)
+                if da == nil && db == nil { return false }
+                if da == nil { return false }
+                if db == nil { return true }
+                return da! < db!
+            }
+            if let first = buckets[key]!.events.first, let firstDate = parseFlexibleDate(first.startDate) {
+                buckets[key]!.anchor = firstDate
+            }
+        }
+        return buckets
+            .sorted { ascending ? $0.value.anchor < $1.value.anchor : $0.value.anchor > $1.value.anchor }
+            .map { MonthGroup(month: $0.key, events: $0.value.events) }
+    }
+
+    var activeGroups: [MonthGroup] {
+        let active = events.filter { !isCompleted($0) }.filter(matchesFilter)
+        return groupByMonth(active, ascending: true)
+    }
+
+    var completedGroups: [MonthGroup] {
+        groupByMonth(events.filter(isCompleted), ascending: false)
+    }
+
+    var activeCount: Int {
+        events.filter { !isCompleted($0) }.filter(matchesFilter).count
+    }
+
+    var summary: (total: Int, avgCompletion: Int, onTrack: Int, attention: Int, atRisk: Int, critical: Int) {
+        let healths = events.filter { !isCompleted($0) }.compactMap { healthByCode[$0.code] }
+        guard !healths.isEmpty else { return (0, 0, 0, 0, 0, 0) }
+        let avg = Int(healths.map(\.completion).reduce(0, +) / healths.count)
+        return (
+            healths.count, avg,
+            healths.filter { $0.tier == "on-track" }.count,
+            healths.filter { $0.tier == "attention" }.count,
+            healths.filter { $0.tier == "at-risk" }.count,
+            healths.filter { $0.tier == "critical" }.count
+        )
+    }
+}
