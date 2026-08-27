@@ -68,13 +68,7 @@ struct SpeedDialMenu: View {
                 isExpanded.toggle()
             }
         } label: {
-            Image(systemName: "plus")
-                .font(.system(size: 20, weight: .semibold))
-                .foregroundStyle(Theme.textPrimary)
-                .frame(width: 54, height: 54)
-                .background(.ultraThinMaterial, in: Circle())
-                .overlay(Circle().stroke(.white.opacity(0.18), lineWidth: 1))
-                .shadow(color: .black.opacity(0.4), radius: 10, y: 4)
+            FloatingIconVisual(systemImage: "plus")
                 .rotationEffect(.degrees(isExpanded ? 45 : 0))
         }
         .buttonStyle(.plain)
