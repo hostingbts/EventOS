@@ -12,6 +12,16 @@ struct DashboardView: View {
     @State private var showSignOut = false
     @State private var showCalendar = false
     @State private var activeTool: QuickTool?
+    @State private var toolsExpanded = false
+
+    private var speedDialItems: [SpeedDialItem] {
+        [
+            SpeedDialItem(id: "generators", icon: "bolt.fill", label: "Generators") { activeTool = .generators },
+            SpeedDialItem(id: "designs", icon: "paintbrush.fill", label: "Designs") { activeTool = .designs },
+            SpeedDialItem(id: "templates", icon: "doc.on.doc.fill", label: "Templates") { activeTool = .templates },
+            SpeedDialItem(id: "tasks", icon: "doc.text.fill", label: "Tasks") { activeTool = .tasks },
+        ]
+    }
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
@@ -46,23 +56,10 @@ struct DashboardView: View {
                 .refreshable { await vm.load() }
             }
 
+            SpeedDialScrim(isExpanded: $toolsExpanded)
+
             VStack(spacing: 14) {
-                Menu {
-                    Button { activeTool = .tasks } label: {
-                        Label("Tasks", systemImage: "doc.text.fill")
-                    }
-                    Button { activeTool = .templates } label: {
-                        Label("Templates", systemImage: "doc.on.doc.fill")
-                    }
-                    Button { activeTool = .designs } label: {
-                        Label("Designs", systemImage: "paintbrush.fill")
-                    }
-                    Button { activeTool = .generators } label: {
-                        Label("Generators", systemImage: "bolt.fill")
-                    }
-                } label: {
-                    FloatingIconVisual(systemImage: "plus")
-                }
+                SpeedDialMenu(items: speedDialItems, isExpanded: $toolsExpanded)
 
                 FloatingActionButton(systemImage: "calendar") {
                     showCalendar = true
