@@ -55,7 +55,11 @@ struct SpeedDialMenu: View {
             .padding(.leading, 16)
             .padding(.trailing, 6)
             .padding(.vertical, 6)
-            .background(.ultraThinMaterial, in: Capsule())
+            .background {
+                Capsule()
+                    .fill(.ultraThinMaterial)
+                    .overlay(Capsule().fill(Theme.cardAlt.opacity(0.6)))
+            }
             .overlay(Capsule().stroke(.white.opacity(0.18), lineWidth: 1))
             .shadow(color: .black.opacity(0.3), radius: 10, y: 4)
         }
