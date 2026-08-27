@@ -1,10 +1,17 @@
 import SwiftUI
 
+/// Secondary tools reachable from the Home screen's "+" speed-dial button.
+enum QuickTool: String, Identifiable {
+    case templates, designs, generators
+    var id: String { rawValue }
+}
+
 struct DashboardView: View {
     @StateObject private var vm = DashboardViewModel()
     @EnvironmentObject private var session: SessionStore
     @State private var showSignOut = false
     @State private var showCalendar = false
+    @State private var activeTool: QuickTool?
 
     var body: some View {
         ZStack(alignment: .bottomTrailing) {
@@ -13,8 +20,6 @@ struct DashboardView: View {
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 24) {
-                        QuickAccessRow()
-
                         if vm.loading {
                             ProgressView("Loading events…").tint(Theme.green)
                                 .frame(maxWidth: .infinity)
@@ -41,8 +46,24 @@ struct DashboardView: View {
                 .refreshable { await vm.load() }
             }
 
-            FloatingActionButton(systemImage: "calendar") {
-                showCalendar = true
+            VStack(spacing: 14) {
+                Menu {
+                    Button { activeTool = .templates } label: {
+                        Label("Templates", systemImage: "doc.on.doc.fill")
+                    }
+                    Button { activeTool = .designs } label: {
+                        Label("Designs", systemImage: "paintbrush.fill")
+                    }
+                    Button { activeTool = .generators } label: {
+                        Label("Generators", systemImage: "bolt.fill")
+                    }
+                } label: {
+                    FloatingIconVisual(systemImage: "plus")
+                }
+
+                FloatingActionButton(systemImage: "calendar") {
+                    showCalendar = true
+                }
             }
             .padding(.trailing, 20)
             .padding(.bottom, 16)
@@ -55,6 +76,16 @@ struct DashboardView: View {
         }
         .sheet(isPresented: $showCalendar) {
             CalendarView()
+        }
+        .navigationDestination(item: $activeTool) { tool in
+            switch tool {
+            case .templates:
+                ComingSoonView(title: "Templates", icon: "doc.on.doc.fill", message: "Org-wide document templates are coming to the iOS app soon.")
+            case .designs:
+                ComingSoonView(title: "Designs", icon: "paintbrush.fill", message: "Badge, table tent, certificate, and banner design tools are coming to the iOS app soon.")
+            case .generators:
+                ComingSoonView(title: "Generators", icon: "bolt.fill", message: "AV equipment, transfer list, per-diem, and SOW generator tools are coming to the iOS app soon.")
+            }
         }
     }
 
