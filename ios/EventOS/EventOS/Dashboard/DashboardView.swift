@@ -2,7 +2,7 @@ import SwiftUI
 
 /// Secondary tools reachable from the Home screen's "+" speed-dial button.
 enum QuickTool: String, Identifiable {
-    case templates, designs, generators
+    case tasks, templates, designs, generators
     var id: String { rawValue }
 }
 
@@ -48,6 +48,9 @@ struct DashboardView: View {
 
             VStack(spacing: 14) {
                 Menu {
+                    Button { activeTool = .tasks } label: {
+                        Label("Tasks", systemImage: "doc.text.fill")
+                    }
                     Button { activeTool = .templates } label: {
                         Label("Templates", systemImage: "doc.on.doc.fill")
                     }
@@ -79,6 +82,8 @@ struct DashboardView: View {
         }
         .navigationDestination(item: $activeTool) { tool in
             switch tool {
+            case .tasks:
+                TaskTemplatesView()
             case .templates:
                 ComingSoonView(title: "Templates", icon: "doc.on.doc.fill", message: "Org-wide document templates are coming to the iOS app soon.")
             case .designs:

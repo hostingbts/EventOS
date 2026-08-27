@@ -27,11 +27,6 @@ struct RootTabView: View {
             .tabItem { Label("Home", systemImage: "house.fill") }
 
             NavigationStack {
-                TaskTemplatesView()
-            }
-            .tabItem { Label("Tasks", systemImage: "doc.text.fill") }
-
-            NavigationStack {
                 TeamView()
             }
             .tabItem { Label("Team", systemImage: "person.2.fill") }
