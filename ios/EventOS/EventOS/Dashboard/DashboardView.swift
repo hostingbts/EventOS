@@ -86,7 +86,7 @@ struct DashboardView: View {
             case .designs:
                 ComingSoonView(title: "Designs", icon: "paintbrush.fill", message: "Badge, table tent, certificate, and banner design tools are coming to the iOS app soon.")
             case .generators:
-                ComingSoonView(title: "Generators", icon: "bolt.fill", message: "AV equipment, transfer list, per-diem, and SOW generator tools are coming to the iOS app soon.")
+                GeneratorsHubView()
             }
         }
     }

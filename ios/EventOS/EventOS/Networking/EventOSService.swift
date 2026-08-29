@@ -102,4 +102,38 @@ enum EventOSService {
         ])
         return res.tasks
     }
+
+    // MARK: Generators (spreadsheet save-to-Drive)
+
+    struct DriveSaveResult: Codable {
+        var driveFileId: String
+        var driveUrl: String
+        var fileName: String
+    }
+
+    static func saveTransferListToDrive(
+        eventCode: String, fileName: String, dataBase64: String,
+        uploadedBy: String, actorEmail: String, eventLocation: String, driveFileId: String? = nil
+    ) async throws -> DriveSaveResult {
+        var payload: [String: Any] = [
+            "eventCode": eventCode, "fileName": fileName, "dataBase64": dataBase64,
+            "uploadedBy": uploadedBy, "actorEmail": actorEmail, "eventLocation": eventLocation,
+            "mimeType": "application/vnd.ms-excel",
+        ]
+        if let driveFileId { payload["driveFileId"] = driveFileId }
+        return try await APIClient.post("transferListSave", payload)
+    }
+
+    static func saveAVEquipmentToDrive(
+        eventCode: String, fileName: String, dataBase64: String,
+        uploadedBy: String, actorEmail: String, eventLocation: String, driveFileId: String? = nil
+    ) async throws -> DriveSaveResult {
+        var payload: [String: Any] = [
+            "eventCode": eventCode, "fileName": fileName, "dataBase64": dataBase64,
+            "uploadedBy": uploadedBy, "actorEmail": actorEmail, "eventLocation": eventLocation,
+            "mimeType": "application/vnd.ms-excel",
+        ]
+        if let driveFileId { payload["driveFileId"] = driveFileId }
+        return try await APIClient.post("avEquipmentSave", payload)
+    }
 }
