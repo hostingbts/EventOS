@@ -26,3 +26,13 @@ struct AuthAccount: Codable, Equatable {
     var passwordHash: String
     var createdAt: String
 }
+
+struct OrgMember: Codable, Identifiable {
+    var id: String
+    var name: String
+    var email: String
+    var role: String
+    var status: String
+    var createdAt: String
+    var invitedBy: String
+}

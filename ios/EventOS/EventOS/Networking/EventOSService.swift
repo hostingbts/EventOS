@@ -66,6 +66,12 @@ enum EventOSService {
         try await APIClient.get("team")
     }
 
+    static func fetchOrgMembers() async throws -> [OrgMember] {
+        struct Response: Codable { var members: [OrgMember] }
+        let res: Response = try await APIClient.get("membersList")
+        return res.members
+    }
+
     // MARK: Task templates
 
     static func fetchTemplatesWithFiles() async throws -> [TaskTemplateWithFiles] {

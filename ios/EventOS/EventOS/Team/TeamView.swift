@@ -3,6 +3,8 @@ import SwiftUI
 struct TeamView: View {
     @EnvironmentObject private var session: SessionStore
     @StateObject private var vm = TeamViewModel()
+    @State private var unassignedExpanded = false
+    @State private var expandedCompleted: Set<String> = []
 
     var body: some View {
         ScrollView {
@@ -10,13 +12,17 @@ struct TeamView: View {
                 if let team = vm.team {
                     statsCard(team)
 
-                    if team.members.isEmpty {
-                        Text("Open an event workspace to create tasks and assign teammates.")
-                            .foregroundStyle(Theme.textSecondary)
+                    if !vm.unassignedTasks.isEmpty {
+                        unassignedSection
                     }
 
-                    ForEach(team.members) { member in
-                        memberCard(member)
+                    if vm.accounts.isEmpty {
+                        Text("No org accounts yet.").foregroundStyle(Theme.textSecondary)
+                    } else {
+                        SectionHeaderRow(icon: "person.2.fill", title: "Accounts")
+                        ForEach(vm.accounts) { account in
+                            accountCard(account)
+                        }
                     }
                 } else if vm.loading {
                     ProgressView("Loading team…").tint(Theme.green)
@@ -45,51 +51,96 @@ struct TeamView: View {
         HStack(spacing: 0) {
             StatBlock(value: "\(team.totalTasks)", label: "Total tasks")
             StatBlock(value: "\(team.openTasks)", label: "Open tasks")
-            StatBlock(value: "\(team.members.count)", label: "Contributors", color: Theme.green)
+            StatBlock(value: "\(vm.accounts.count)", label: "Contributors", color: Theme.green)
         }
         .cardStyle()
     }
 
-    private func memberCard(_ member: TeamMember) -> some View {
+    private var unassignedSection: some View {
+        DisclosureRow(title: "Unassigned", count: vm.unassignedTasks.count, isExpanded: $unassignedExpanded) {
+            VStack(spacing: 8) {
+                ForEach(vm.unassignedTasks) { task in
+                    taskRow(task)
+                }
+            }
+        }
+    }
+
+    private func accountCard(_ account: AccountSummary) -> some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
                 ZStack {
                     Circle().fill(Theme.headerGradient).frame(width: 36, height: 36)
-                    Text(member.name.prefix(1).uppercased())
+                    Text(account.name.prefix(1).uppercased())
                         .font(.caption.bold()).foregroundStyle(.white)
                 }
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(member.name).font(.subheadline.bold()).foregroundStyle(Theme.textPrimary)
-                    if !member.email.isEmpty {
-                        Text(member.email).font(.caption2).foregroundStyle(Theme.textSecondary)
+                    Text(account.name).font(.subheadline.bold()).foregroundStyle(Theme.textPrimary)
+                    if !account.email.isEmpty {
+                        Text(account.email).font(.caption2).foregroundStyle(Theme.textSecondary)
                     }
                 }
                 Spacer()
-                Text("\(member.tasks.count)").font(.caption.bold()).foregroundStyle(Theme.green)
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("\(account.currentTasks.count) current").font(.caption2.bold()).foregroundStyle(Theme.green)
+                    Text("\(account.completedTasks.count) done").font(.caption2).foregroundStyle(Theme.textSecondary)
+                }
             }
 
-            VStack(spacing: 8) {
-                ForEach(member.tasks) { task in
-                    NavigationLink {
-                        EventWorkspaceView(eventCode: task.eventCode)
-                    } label: {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 1) {
-                                Text(task.eventCode).font(.caption.bold()).foregroundStyle(Theme.textSecondary)
-                                Text(task.title).font(.subheadline).foregroundStyle(Theme.textPrimary)
-                            }
-                            Spacer()
-                            statusPill(task.status)
-                        }
-                        .padding(10)
-                        .background(Theme.cardAlt)
-                        .clipShape(RoundedRectangle(cornerRadius: Theme.cornerSmall, style: .continuous))
+            if account.currentTasks.isEmpty && account.completedTasks.isEmpty {
+                Text("No tasks assigned.").font(.caption).foregroundStyle(Theme.textSecondary)
+            }
+
+            if !account.currentTasks.isEmpty {
+                VStack(spacing: 8) {
+                    ForEach(account.currentTasks) { task in
+                        taskRow(task)
                     }
-                    .buttonStyle(.plain)
+                }
+            }
+
+            if !account.completedTasks.isEmpty {
+                DisclosureRow(
+                    title: "Completed",
+                    count: account.completedTasks.count,
+                    isExpanded: Binding(
+                        get: { expandedCompleted.contains(account.id) },
+                        set: { expanded in
+                            if expanded { expandedCompleted.insert(account.id) } else { expandedCompleted.remove(account.id) }
+                        }
+                    )
+                ) {
+                    VStack(spacing: 8) {
+                        ForEach(account.completedTasks) { task in
+                            taskRow(task)
+                        }
+                    }
                 }
             }
         }
         .cardStyle()
+    }
+
+    private func taskRow(_ task: EventTask) -> some View {
+        NavigationLink {
+            EventWorkspaceView(eventCode: task.eventCode)
+        } label: {
+            HStack {
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(task.eventCode).font(.caption.bold()).foregroundStyle(Theme.textSecondary)
+                    Text(task.title)
+                        .font(.subheadline)
+                        .foregroundStyle(task.status == .done ? Theme.textSecondary : Theme.textPrimary)
+                        .strikethrough(task.status == .done)
+                }
+                Spacer()
+                statusPill(task.status)
+            }
+            .padding(10)
+            .background(Theme.cardAlt)
+            .clipShape(RoundedRectangle(cornerRadius: Theme.cornerSmall, style: .continuous))
+        }
+        .buttonStyle(.plain)
     }
 
     private func statusPill(_ status: TaskStatus) -> some View {
