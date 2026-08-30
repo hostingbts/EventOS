@@ -418,6 +418,15 @@
   text-align: center;
 }
 
+.otf-error {
+  background: var(--danger-soft, #fee2e2);
+  color: #b91c1c;
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-md, 8px);
+  font-size: 0.88rem;
+  margin-bottom: 1.5rem;
+}
+
 /* ─── Responsive ──────────────────────────────────────────── */
 @media (max-width: 600px) {
   .otf-page {
