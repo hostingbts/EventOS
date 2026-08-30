@@ -659,3 +659,65 @@ export async function apiCapsList(): Promise<CapMatrix | null> {
 export async function apiCapsSave(matrix: CapMatrix, actorEmail: string): Promise<void> {
   await post('capsSave', { matrix, actorEmail });
 }
+
+// ——— Org templates (shared print/social/forms library) ———
+
+export interface OrgTemplateFile {
+  id: string;
+  name: string;
+  category: string;
+  fileType: string;
+  /** Drive share link — real mode only. */
+  driveUrl?: string;
+  /** Drive file ID — real mode only; used to build embeddable preview/download URLs. */
+  driveFileId?: string;
+  sizeBytes?: number;
+  addedBy: string;
+  addedAt: string;
+}
+
+export async function fetchOrgTemplates(): Promise<OrgTemplateFile[]> {
+  if (useMockData()) {
+    const { getOrgTemplates } = await import('../utils/orgTemplatesStore');
+    return getOrgTemplates().map((f) => ({ ...f, driveUrl: f.dataUrl }));
+  }
+  const res = await parseJson<{ templates: OrgTemplateFile[] }>(await fetch(buildUrl('orgTemplatesList')));
+  return res.templates;
+}
+
+/** Attaches/replaces the file on an existing slot (pass `id`), or creates a
+ * brand-new one (omit `id`, pass `name` + `category`). Admin-only. */
+export async function saveOrgTemplateFile(payload: {
+  id?: string;
+  name?: string;
+  category?: string;
+  file: File;
+  actorEmail: string;
+}): Promise<OrgTemplateFile> {
+  if (useMockData()) {
+    const { addOrgTemplate, uploadToOrgTemplate } = await import('../utils/orgTemplatesStore');
+    const entry = payload.id
+      ? await uploadToOrgTemplate(payload.id, payload.file)
+      : await addOrgTemplate(payload.file, payload.category || 'Other', payload.actorEmail);
+    return { ...entry, driveUrl: entry.dataUrl };
+  }
+  const dataBase64 = await fileToBase64(payload.file);
+  return post('orgTemplateUpload', {
+    id: payload.id,
+    name: payload.name,
+    category: payload.category,
+    fileName: payload.file.name,
+    mimeType: payload.file.type,
+    dataBase64,
+    actorEmail: payload.actorEmail,
+  });
+}
+
+export async function deleteOrgTemplateFile(id: string, actorEmail: string): Promise<void> {
+  if (useMockData()) {
+    const { deleteOrgTemplate } = await import('../utils/orgTemplatesStore');
+    deleteOrgTemplate(id);
+    return;
+  }
+  await post('orgTemplateDelete', { id, actorEmail });
+}
