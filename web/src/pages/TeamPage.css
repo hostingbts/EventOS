@@ -124,3 +124,123 @@
 .team__msg {
   color: var(--muted);
 }
+
+.team__section-title {
+  margin: 0 0 1rem;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.team__disclosure {
+  margin-bottom: 1.5rem;
+}
+
+.team__disclosure-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 0.9rem 1.15rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ink);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+}
+
+.team__disclosure-right {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.team__disclosure-count {
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.team__disclosure-chevron {
+  display: inline-block;
+  color: var(--muted);
+  transform: rotate(90deg);
+  transition: transform 0.15s ease;
+}
+
+.team__disclosure-chevron--open {
+  transform: rotate(-90deg);
+}
+
+.team__disclosure-list {
+  list-style: none;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.team__disclosure-list li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.65rem 0.85rem;
+  background: var(--surface-2, var(--border-subtle));
+  border-radius: var(--radius-md, 8px);
+}
+
+.team__account-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.85rem;
+}
+
+.team__account-header h2 {
+  margin: 0;
+}
+
+.team__account-header .team__email {
+  margin: 0.1rem 0 0;
+}
+
+.team__avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.team__account-counts {
+  margin-left: auto;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.team__account-counts strong {
+  font-size: 0.82rem;
+  color: var(--primary);
+}
+
+.team__account-counts span {
+  font-size: 0.75rem;
+  color: var(--muted);
+}
+
+.team__no-tasks {
+  color: var(--muted);
+  font-size: 0.85rem;
+  margin: 0;
+}
