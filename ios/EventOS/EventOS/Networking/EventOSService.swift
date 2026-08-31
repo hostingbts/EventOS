@@ -109,6 +109,35 @@ enum EventOSService {
         return res.tasks
     }
 
+    // MARK: Org templates (shared print/social/forms library)
+
+    static func fetchOrgTemplates() async throws -> [OrgTemplateFile] {
+        struct Response: Codable { var templates: [OrgTemplateFile] }
+        let res: Response = try await APIClient.get("orgTemplatesList")
+        return res.templates
+    }
+
+    /// Attaches/replaces the file on an existing slot (pass `id`), or creates a
+    /// brand-new one (omit `id`, pass `name` + `category`). Admin-only.
+    @discardableResult
+    static func uploadOrgTemplateFile(
+        id: String? = nil, name: String? = nil, category: String? = nil,
+        fileName: String, mimeType: String, dataBase64: String, actorEmail: String
+    ) async throws -> OrgTemplateFile {
+        var payload: [String: Any] = [
+            "fileName": fileName, "mimeType": mimeType, "dataBase64": dataBase64, "actorEmail": actorEmail,
+        ]
+        if let id { payload["id"] = id }
+        if let name { payload["name"] = name }
+        if let category { payload["category"] = category }
+        return try await APIClient.post("orgTemplateUpload", payload)
+    }
+
+    static func deleteOrgTemplateFile(id: String, actorEmail: String) async throws {
+        struct OkResponse: Codable { var ok: Bool }
+        let _: OkResponse = try await APIClient.post("orgTemplateDelete", ["id": id, "actorEmail": actorEmail])
+    }
+
     // MARK: Generators (spreadsheet save-to-Drive)
 
     struct DriveSaveResult: Codable {

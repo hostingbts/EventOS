@@ -59,3 +59,31 @@ struct TaskTemplateWithFiles: Codable, Identifiable {
 
     var id: String { template.templateId }
 }
+
+/// One org-wide template slot (print materials, social media assets, forms) —
+/// backed by Drive, visible to everyone, not just the admin who uploaded it.
+struct OrgTemplateFile: Codable, Identifiable, Equatable {
+    var id: String
+    var name: String
+    var category: String
+    var fileType: String
+    var driveFileId: String?
+    var driveUrl: String?
+    var sizeBytes: Int?
+    var addedBy: String
+    var addedAt: String
+
+    var hasFile: Bool { !(driveUrl ?? "").isEmpty }
+
+    /// Drive's embeddable preview URL — its plain share link refuses to be framed.
+    var previewURL: URL? {
+        guard let id = driveFileId, !id.isEmpty else { return nil }
+        return URL(string: "https://drive.google.com/file/d/\(id)/preview")
+    }
+
+    /// A URL that actually streams the file instead of opening Drive's viewer.
+    var downloadURL: URL? {
+        guard let id = driveFileId, !id.isEmpty else { return nil }
+        return URL(string: "https://drive.google.com/uc?export=download&id=\(id)")
+    }
+}
