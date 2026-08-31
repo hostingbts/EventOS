@@ -225,6 +225,11 @@ function handleRequest_(e, method) {
       return jsonResponse_(updateTask_(body.taskId, body.updates || {}, actorEmail));
     }
 
+    if (action === 'taskDelete' && method === 'POST') {
+      requireAdmin_(actorEmail);
+      return jsonResponse_(deleteTask_(body.taskId, actorEmail));
+    }
+
     // ——— Comments ———
     if (action === 'commentsList') {
       return jsonResponse_({
