@@ -166,6 +166,22 @@ function handleRequest_(e, method) {
       );
     }
 
+    // ——— Org templates (shared print/social/forms library) ———
+    if (action === 'orgTemplatesList') {
+      return jsonResponse_({ templates: listOrgTemplates_() });
+    }
+
+    if (action === 'orgTemplateUpload' && acceptsWrite_(method, e)) {
+      requireAdmin_(actorEmail);
+      body.actorEmail = actorEmail;
+      return jsonResponse_(upsertOrgTemplateFile_(body));
+    }
+
+    if (action === 'orgTemplateDelete' && method === 'POST') {
+      requireAdmin_(actorEmail);
+      return jsonResponse_(deleteOrgTemplateEntry_(body.id, actorEmail));
+    }
+
     // ——— Vendor links (team) ———
     if (action === 'vendorLinksList') {
       if (typeof listVendorLinks_ !== 'function') {
