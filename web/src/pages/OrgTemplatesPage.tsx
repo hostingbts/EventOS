@@ -325,11 +325,12 @@ export function OrgTemplatesPage() {
                       {hasFile && (
                         <button
                           type="button"
-                          className="otf-btn otf-btn--sm otf-btn--secondary"
+                          className="otf-btn otf-btn--sm otf-btn--icon otf-btn--secondary"
                           onClick={() => handleCopyLink(f)}
-                          title="Copy a shareable link to this file"
+                          title={copiedId === f.id ? 'Copied!' : 'Copy a shareable link to this file'}
+                          aria-label="Copy shareable link"
                         >
-                          {copiedId === f.id ? '✓ Copied!' : '🔗 Share'}
+                          {copiedId === f.id ? '✓' : '🔗'}
                         </button>
                       )}
 

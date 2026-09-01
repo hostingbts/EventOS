@@ -235,6 +235,11 @@
   border-radius: 6px;
 }
 
+.otf-btn--icon {
+  padding: 0.28rem 0.5rem;
+  min-width: 1.9rem;
+}
+
 .otf-btn.loading {
   opacity: 0.6;
   pointer-events: none;
