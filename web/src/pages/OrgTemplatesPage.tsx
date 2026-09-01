@@ -94,15 +94,20 @@ function LinkIcon() {
   );
 }
 
-/** Refresh/replace icon: two curved arrows forming a loop. Uses
- * currentColor so it picks up the button's own color (green). */
+/** Repeat/replace icon: two straight bars with chevron arrowheads
+ * forming a loop. Uses currentColor so it picks up the button's own
+ * color (green). */
 function ReplaceIcon() {
   return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <path d="M4.5 14.7 A8 8 0 0 1 19.3 9.6" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" fill="none" />
-      <path d="M20.8 4.8 L20.9 11.2 L15 9.3 Z" fill="currentColor" />
-      <path d="M19.5 9.3 A8 8 0 0 1 4.7 14.4" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" fill="none" />
-      <path d="M3.2 19.2 L3.1 12.8 L9 14.7 Z" fill="currentColor" />
+    <svg
+      width="16" height="16" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <polyline points="17 1 21 5 17 9" />
+      <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+      <polyline points="7 23 3 19 7 15" />
+      <path d="M21 13v2a4 4 0 0 1-4 4H3" />
     </svg>
   );
 }
