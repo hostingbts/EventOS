@@ -94,6 +94,19 @@ function LinkIcon() {
   );
 }
 
+/** Refresh/replace icon: two curved arrows forming a loop. Uses
+ * currentColor so it picks up the button's own color (green). */
+function ReplaceIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M4.5 14.7 A8 8 0 0 1 19.3 9.6" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" fill="none" />
+      <path d="M20.8 4.8 L20.9 11.2 L15 9.3 Z" fill="currentColor" />
+      <path d="M19.5 9.3 A8 8 0 0 1 4.7 14.4" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" fill="none" />
+      <path d="M3.2 19.2 L3.1 12.8 L9 14.7 Z" fill="currentColor" />
+    </svg>
+  );
+}
+
 function FileTypeBadge({ type }: { type: string }) {
   return (
     <span
@@ -368,10 +381,11 @@ export function OrgTemplatesPage() {
                       {isAdmin && (
                         <>
                           <label
-                            className={`otf-btn otf-btn--sm otf-btn--secondary${uploading === f.id ? ' loading' : ''}`}
-                            title="Upload file"
+                            className={`otf-btn otf-btn--sm otf-btn--icon otf-btn--ghost${uploading === f.id ? ' loading' : ''}`}
+                            title={hasFile ? 'Replace file' : 'Upload file'}
+                            aria-label={hasFile ? 'Replace file' : 'Upload file'}
                           >
-                            {uploading === f.id ? '…' : hasFile ? 'Replace' : 'Upload'}
+                            {uploading === f.id ? '…' : <ReplaceIcon />}
                             <input
                               type="file"
                               hidden
