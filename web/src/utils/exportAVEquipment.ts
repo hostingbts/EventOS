@@ -7,7 +7,7 @@
  *  - Footer rows:    "Equipment Total" + "Total Sum" — merged A:F, value in G
  */
 import XLSXStyle from 'xlsx-js-style';
-import type { AVSetup, AVItemState } from '../pages/AVEquipmentPage';
+import type { AVSetup, AVItemState, SupplyItemState } from '../pages/AVEquipmentPage';
 import { buildDescription } from '../pages/AVEquipmentPage';
 
 // ─── Style helpers ──────────────────────────────────────────────────────────
@@ -93,7 +93,11 @@ export function avEquipmentFilename(setup: AVSetup): string {
   return `${safeName}_Equipment.xlsx`;
 }
 
-export function buildAVEquipmentWorkbook(setup: AVSetup, items: AVItemState[]) {
+export function buildAVEquipmentWorkbook(
+  setup: AVSetup,
+  items: AVItemState[],
+  supplies: SupplyItemState[] = [],
+) {
   const enabled = items.filter((it) => it.enabled);
 
   const titleLine1 = `${setup.eventCode} - ${setup.eventCity} - Date: ${setup.eventDate}`;
@@ -102,68 +106,80 @@ export function buildAVEquipmentWorkbook(setup: AVSetup, items: AVItemState[]) {
   const colWidths = [4, 60, 8, 6, 8, 16, 14];
 
   const ws: Record<string, unknown> = {};
-
   const enc = XLSXStyle.utils.encode_cell;
 
   let R = 0;
+  let num = 0;
+  const rowHeights: { hpt: number }[] = [];
+  const merges: { s: { r: number; c: number }; e: { r: number; c: number } }[] = [];
 
   ws[enc({ r: R, c: 0 })] = c(`${titleLine1}\n${titleLine2}`, S_TITLE);
   for (let col = 1; col <= 6; col++) ws[enc({ r: R, c: col })] = blank(S_TITLE);
+  merges.push({ s: { r: R, c: 0 }, e: { r: R, c: 6 } });
+  rowHeights.push({ hpt: 50 });
   R++;
 
   const headers = ['No.', 'Name of the Service and Brief Description', 'Item', 'Day', 'Amount', 'Price per Item', 'Total'];
   headers.forEach((h, col) => {
     ws[enc({ r: R, c: col })] = c(h, S_HEADER);
   });
+  rowHeights.push({ hpt: 32 });
   R++;
 
-  ws[enc({ r: R, c: 0 })] = c('Conference Equipment', S_SECTION);
-  for (let col = 1; col <= 6; col++) ws[enc({ r: R, c: col })] = blank(S_SECTION);
-  R++;
-
-  enabled.forEach((item, idx) => {
-    const desc   = buildDescription(item);
-    const amount = resolveAmount(item);
-    ws[enc({ r: R, c: 0 })] = c(idx + 1,             S_NUM);
-    ws[enc({ r: R, c: 1 })] = c(desc,                S_DESC);
-    ws[enc({ r: R, c: 2 })] = c('Item',              S_CELL);
-    ws[enc({ r: R, c: 3 })] = c(setup.days,          S_CELL);
-    ws[enc({ r: R, c: 4 })] = c(amount,              S_CELL);
-    ws[enc({ r: R, c: 5 })] = c('',                  S_CELL);
-    ws[enc({ r: R, c: 6 })] = c(0,                   S_CELL);
+  function writeSectionHeader(label: string) {
+    ws[enc({ r: R, c: 0 })] = c(label, S_SECTION);
+    for (let col = 1; col <= 6; col++) ws[enc({ r: R, c: col })] = blank(S_SECTION);
+    merges.push({ s: { r: R, c: 0 }, e: { r: R, c: 6 } });
+    rowHeights.push({ hpt: 20 });
     R++;
-  });
+  }
 
-  ws[enc({ r: R, c: 0 })] = c('Equipment Total', S_FOOTER_LABEL);
-  for (let col = 1; col <= 5; col++) ws[enc({ r: R, c: col })] = blank(S_FOOTER_LABEL);
-  ws[enc({ r: R, c: 6 })] = c(0, S_FOOTER_VALUE);
-  R++;
+  function writeItemRow(desc: string, day: number, amount: number) {
+    num++;
+    ws[enc({ r: R, c: 0 })] = c(num,    S_NUM);
+    ws[enc({ r: R, c: 1 })] = c(desc,   S_DESC);
+    ws[enc({ r: R, c: 2 })] = c('Item', S_CELL);
+    ws[enc({ r: R, c: 3 })] = c(day,    S_CELL);
+    ws[enc({ r: R, c: 4 })] = c(amount, S_CELL);
+    ws[enc({ r: R, c: 5 })] = c('',     S_CELL);
+    ws[enc({ r: R, c: 6 })] = c(0,      S_CELL);
+    rowHeights.push({ hpt: 40 });
+    R++;
+  }
 
-  ws[enc({ r: R, c: 0 })] = c('Total Sum (*Taxes and fees Included)', S_FOOTER_LABEL);
-  for (let col = 1; col <= 5; col++) ws[enc({ r: R, c: col })] = blank(S_FOOTER_LABEL);
-  ws[enc({ r: R, c: 6 })] = c(0, S_FOOTER_VALUE);
-  R++;
+  function writeFooterRow(label: string) {
+    ws[enc({ r: R, c: 0 })] = c(label, S_FOOTER_LABEL);
+    for (let col = 1; col <= 5; col++) ws[enc({ r: R, c: col })] = blank(S_FOOTER_LABEL);
+    ws[enc({ r: R, c: 6 })] = c(0, S_FOOTER_VALUE);
+    merges.push({ s: { r: R, c: 0 }, e: { r: R, c: 5 } });
+    rowHeights.push({ hpt: 20 });
+    R++;
+  }
+
+  if (enabled.length > 0) {
+    writeSectionHeader('Conference Equipment');
+    enabled.forEach((item) => {
+      writeItemRow(buildDescription(item), setup.days, resolveAmount(item));
+    });
+  }
+
+  // Supplies are always listed as 1 day, regardless of the equipment "days" setting.
+  if (supplies.length > 0) {
+    writeSectionHeader('Conference Supplies and Materials');
+    supplies.forEach((s) => {
+      writeItemRow(s.name, 1, s.amount);
+    });
+  }
+
+  if (enabled.length > 0)  writeFooterRow('Equipment Total');
+  if (supplies.length > 0) writeFooterRow('Supplies Total');
+  writeFooterRow('Total Sum (*Taxes and fees Included)');
 
   const lastRow = R - 1;
   ws['!ref'] = XLSXStyle.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: lastRow, c: 6 } });
-
-  ws['!merges'] = [
-    { s: { r: 0, c: 0 }, e: { r: 0, c: 6 } },
-    { s: { r: 2, c: 0 }, e: { r: 2, c: 6 } },
-    { s: { r: lastRow - 1, c: 0 }, e: { r: lastRow - 1, c: 5 } },
-    { s: { r: lastRow, c: 0 }, e: { r: lastRow, c: 5 } },
-  ];
-
+  ws['!merges'] = merges;
   ws['!cols'] = colWidths.map((w) => ({ wch: w }));
-
-  ws['!rows'] = [
-    { hpt: 50 },
-    { hpt: 32 },
-    { hpt: 20 },
-    ...Array(enabled.length).fill({ hpt: 40 }),
-    { hpt: 20 },
-    { hpt: 20 },
-  ];
+  ws['!rows'] = rowHeights;
 
   const wb = XLSXStyle.utils.book_new();
   const sheetName = setup.eventDate || 'Equipment';
@@ -171,16 +187,21 @@ export function buildAVEquipmentWorkbook(setup: AVSetup, items: AVItemState[]) {
   return wb;
 }
 
-export function avEquipmentToArrayBuffer(setup: AVSetup, items: AVItemState[]): ArrayBuffer {
-  const wb = buildAVEquipmentWorkbook(setup, items);
+export function avEquipmentToArrayBuffer(
+  setup: AVSetup,
+  items: AVItemState[],
+  supplies: SupplyItemState[] = [],
+): ArrayBuffer {
+  const wb = buildAVEquipmentWorkbook(setup, items, supplies);
   return XLSXStyle.write(wb, { type: 'array', bookType: 'xlsx' }) as ArrayBuffer;
 }
 
 export function exportAVEquipment(
-  setup:   AVSetup,
-  items:   AVItemState[],
+  setup:    AVSetup,
+  items:    AVItemState[],
+  supplies: SupplyItemState[] = [],
 ): void {
-  XLSXStyle.writeFile(buildAVEquipmentWorkbook(setup, items), avEquipmentFilename(setup));
+  XLSXStyle.writeFile(buildAVEquipmentWorkbook(setup, items, supplies), avEquipmentFilename(setup));
 }
 
 // ─── Resolve the "Amount" column value for an item ──────────────────────────

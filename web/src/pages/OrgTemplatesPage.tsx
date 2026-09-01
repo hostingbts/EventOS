@@ -42,6 +42,29 @@ function downloadHref(f: OrgTemplateFile): string | undefined {
   return f.driveUrl;
 }
 
+/** The normal Drive "view" link — safe to hand to anyone, since these files
+ * are already shared org-wide with no login required. */
+function shareUrl(f: OrgTemplateFile): string | undefined {
+  if (f.driveUrl) return f.driveUrl;
+  if (f.driveFileId) return `https://drive.google.com/file/d/${f.driveFileId}/view?usp=sharing`;
+  return undefined;
+}
+
+async function copyToClipboard(text: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+  }
+}
+
 function FileTypeBadge({ type }: { type: string }) {
   return (
     <span
@@ -72,6 +95,15 @@ interface PreviewModalProps {
 function PreviewModal({ file, onClose }: PreviewModalProps) {
   const href = downloadHref(file);
   const src = previewSrc(file);
+  const link = shareUrl(file);
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    if (!link) return;
+    await copyToClipboard(link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
 
   return (
     <div className="otf-modal-overlay" onClick={onClose} role="presentation">
@@ -82,6 +114,11 @@ function PreviewModal({ file, onClose }: PreviewModalProps) {
             <h2>{file.name}</h2>
           </div>
           <div className="otf-modal__actions">
+            {link && (
+              <button type="button" className="otf-btn otf-btn--secondary" onClick={handleCopy}>
+                {copied ? '✓ Copied!' : '🔗 Copy link'}
+              </button>
+            )}
             {href && (
               <a className="otf-btn otf-btn--primary" href={href} target="_blank" rel="noopener noreferrer">
                 ↓ Download
@@ -116,6 +153,7 @@ export function OrgTemplatesPage() {
   const [uploading, setUploading] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
   const addFileInput = useRef<HTMLInputElement>(null);
 
   async function refresh() {
@@ -162,6 +200,14 @@ export function OrgTemplatesPage() {
     } finally {
       setUploading(null);
     }
+  }
+
+  async function handleCopyLink(f: OrgTemplateFile) {
+    const link = shareUrl(f);
+    if (!link) return;
+    await copyToClipboard(link);
+    setCopiedId(f.id);
+    setTimeout(() => setCopiedId((cur) => (cur === f.id ? null : cur)), 2000);
   }
 
   async function handleDelete(id: string, name: string) {
@@ -275,6 +321,18 @@ export function OrgTemplatesPage() {
                       >
                         {hasFile ? 'Preview' : 'View'}
                       </button>
+
+                      {hasFile && (
+                        <button
+                          type="button"
+                          className="otf-btn otf-btn--sm otf-btn--icon otf-btn--secondary"
+                          onClick={() => handleCopyLink(f)}
+                          title={copiedId === f.id ? 'Copied!' : 'Copy a shareable link to this file'}
+                          aria-label="Copy shareable link"
+                        >
+                          {copiedId === f.id ? '✓' : '🔗'}
+                        </button>
+                      )}
 
                       {isAdmin && (
                         <>
