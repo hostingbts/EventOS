@@ -31,6 +31,12 @@ export interface AVSetup {
   days:       number;
 }
 
+export interface SupplyItemState {
+  id:     string;
+  name:   string;
+  amount: number;
+}
+
 export interface AVItemState {
   id:          string;
   enabled:     boolean;
@@ -121,6 +127,13 @@ const SCREEN_SIZES = [
   '2.5 x 3.5', '3 x 3.5', '3 x 4', '3.5 x 5',
 ];
 
+export const SUPPLY_CATALOG = ['Briefing Folders', 'Table Tent Cards', 'Pen and Notepads', 'Name Badges'];
+const CUSTOM_SUPPLY = '__custom__';
+
+function uid(): string {
+  return Math.random().toString(36).slice(2, 10);
+}
+
 // ─── Range helpers ────────────────────────────────────────────────────────────
 
 function range(from: number, to: number, step = 1): number[] {
@@ -165,6 +178,10 @@ export function AVEquipmentPage() {
   });
 
   const [items, setItems]         = useState<AVItemState[]>(defaultItems);
+  const [supplies, setSupplies]   = useState<SupplyItemState[]>([]);
+  const [newSupplyName, setNewSupplyName]     = useState<string>(SUPPLY_CATALOG[0]);
+  const [newSupplyCustom, setNewSupplyCustom] = useState('');
+  const [newSupplyAmount, setNewSupplyAmount] = useState(1);
   const [exporting, setExporting] = useState(false);
   const [saving, setSaving]       = useState(false);
   const [savedAt, setSavedAt]     = useState<string | null>(null);
@@ -194,6 +211,7 @@ export function AVEquipmentPage() {
     if (!saved) return;
     setSetup(saved.setup);
     setItems(saved.items);
+    setSupplies(saved.supplies ?? []);
     setSavedAt(saved.savedAt);
     setSavedBy(saved.savedBy);
     applyDriveMeta(saved);
@@ -222,10 +240,12 @@ export function AVEquipmentPage() {
     if (saved) {
       setSetup(saved.setup);
       setItems(saved.items);
+      setSupplies(saved.supplies ?? []);
       setSavedAt(saved.savedAt);
       setSavedBy(saved.savedBy);
       applyDriveMeta(saved);
     } else {
+      setSupplies([]);
       setSavedAt(null);
       setSavedBy('');
       setDriveLink(null);
@@ -245,10 +265,26 @@ export function AVEquipmentPage() {
     setItems((prev) => prev.map((it) => it.id === id ? { ...it, enabled: !it.enabled } : it));
   }
 
+  function addSupply() {
+    const name = newSupplyName === CUSTOM_SUPPLY ? newSupplyCustom.trim() : newSupplyName;
+    if (!name) return;
+    setSupplies((prev) => [...prev, { id: uid(), name, amount: newSupplyAmount > 0 ? newSupplyAmount : 1 }]);
+    setNewSupplyCustom('');
+    setNewSupplyAmount(1);
+  }
+
+  function updateSupplyAmount(id: string, amount: number) {
+    setSupplies((prev) => prev.map((s) => s.id === id ? { ...s, amount } : s));
+  }
+
+  function removeSupply(id: string) {
+    setSupplies((prev) => prev.filter((s) => s.id !== id));
+  }
+
   async function handleExport() {
     setExporting(true);
     try {
-      exportAVEquipment(setup, items);
+      exportAVEquipment(setup, items, supplies);
     } finally {
       setExporting(false);
     }
@@ -266,7 +302,7 @@ export function AVEquipmentPage() {
     let nextDriveFileId = driveFileId;
 
     try {
-      const buffer = avEquipmentToArrayBuffer(setup, items);
+      const buffer = avEquipmentToArrayBuffer(setup, items, supplies);
       const result = await saveAVEquipmentToDrive({
         eventCode: setup.eventCode,
         fileName,
@@ -287,6 +323,7 @@ export function AVEquipmentPage() {
     saveAVEquipment(setup.eventCode, {
       setup,
       items,
+      supplies,
       savedAt: now,
       savedBy: name,
       savedByEmail: email,
@@ -317,6 +354,7 @@ export function AVEquipmentPage() {
   }
 
   const enabledItems = items.filter((it) => it.enabled);
+  const hasContent = enabledItems.length > 0 || supplies.length > 0;
   const filename = avEquipmentFilename(setup);
 
   return (
@@ -609,6 +647,72 @@ export function AVEquipmentPage() {
             </div>
           </section>
 
+          {/* Supplies & materials */}
+          <section className="av-section">
+            <h3 className="av-section__title">Supplies & Materials</h3>
+            <p className="av-section__hint">Pick an item, set the amount, and add it. Supplies are always listed as 1 day.</p>
+
+            <div className="av-supply-add">
+              <select
+                className="av-select"
+                value={newSupplyName}
+                onChange={(e) => setNewSupplyName(e.target.value)}
+              >
+                {SUPPLY_CATALOG.map((s) => <option key={s} value={s}>{s}</option>)}
+                <option value={CUSTOM_SUPPLY}>Other…</option>
+              </select>
+              {newSupplyName === CUSTOM_SUPPLY && (
+                <input
+                  className="av-input"
+                  placeholder="Item name"
+                  value={newSupplyCustom}
+                  onChange={(e) => setNewSupplyCustom(e.target.value)}
+                />
+              )}
+              <input
+                className="av-input av-supply-add__amount"
+                type="number"
+                min={1}
+                value={newSupplyAmount}
+                onChange={(e) => setNewSupplyAmount(parseInt(e.target.value) || 1)}
+              />
+              <button
+                type="button"
+                className="av-btn av-supply-add__btn"
+                onClick={addSupply}
+                disabled={newSupplyName === CUSTOM_SUPPLY && !newSupplyCustom.trim()}
+              >
+                + Add
+              </button>
+            </div>
+
+            {supplies.length > 0 && (
+              <div className="av-supply-list">
+                {supplies.map((s, idx) => (
+                  <div key={s.id} className="av-supply-row">
+                    <span className="av-supply-row__num">{idx + 1}</span>
+                    <span className="av-supply-row__name">{s.name}</span>
+                    <input
+                      className="av-input av-supply-row__amount"
+                      type="number"
+                      min={1}
+                      value={s.amount}
+                      onChange={(e) => updateSupplyAmount(s.id, parseInt(e.target.value) || 1)}
+                    />
+                    <button
+                      type="button"
+                      className="av-supply-row__remove"
+                      onClick={() => removeSupply(s.id)}
+                      aria-label={`Remove ${s.name}`}
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
           {/* Export + Save */}
           <div className="av-export-bar">
             <div className="av-filename">📄 {filename}</div>
@@ -622,7 +726,7 @@ export function AVEquipmentPage() {
               <button
                 className="av-btn av-btn--export"
                 onClick={handleExport}
-                disabled={exporting || enabledItems.length === 0}
+                disabled={exporting || !hasContent}
               >
                 {exporting ? '⏳ Generating…' : '⬇ Export Equipment List (.xlsx)'}
               </button>
@@ -640,16 +744,16 @@ export function AVEquipmentPage() {
                 type="button"
                 className="av-btn av-btn--save"
                 onClick={handleSave}
-                disabled={saving || !setup.eventCode || enabledItems.length === 0}
+                disabled={saving || !setup.eventCode || !hasContent}
                 title={!setup.eventCode ? 'Enter an event code first' : 'Save equipment list to Google Drive'}
               >
                 {saving ? '⏳ Saving…' : '💾 Save'}
               </button>
             </div>
-            {enabledItems.length === 0 && (
-              <p className="av-export-hint">Select at least one equipment item above.</p>
+            {!hasContent && (
+              <p className="av-export-hint">Select at least one equipment item or supply above.</p>
             )}
-            {!setup.eventCode && enabledItems.length > 0 && (
+            {!setup.eventCode && hasContent && (
               <p className="av-export-hint">Enter an event code to enable saving to Google Drive.</p>
             )}
           </div>
@@ -679,41 +783,75 @@ export function AVEquipmentPage() {
                   <th>Price / Item</th>
                   <th>Total</th>
                 </tr>
-                <tr className="av-pt__section">
-                  <th colSpan={7}>Conference Equipment</th>
-                </tr>
               </thead>
               <tbody>
-                {enabledItems.length === 0 ? (
+                {!hasContent ? (
                   <tr>
                     <td colSpan={7} className="av-pt__empty">
-                      No items selected — check items on the left to build the list.
+                      No items selected — check equipment or add supplies on the left to build the list.
                     </td>
                   </tr>
                 ) : (
-                  enabledItems.map((item, idx) => (
-                    <tr key={item.id} className="av-pt__row">
-                      <td className="av-pt__num">{idx + 1}</td>
-                      <td className="av-pt__desc">{buildDescription(item)}</td>
-                      <td>Item</td>
-                      <td>{setup.days}</td>
-                      <td>{resolvePreviewAmount(item)}</td>
-                      <td>—</td>
-                      <td>0</td>
-                    </tr>
-                  ))
+                  <>
+                    {enabledItems.length > 0 && (
+                      <>
+                        <tr className="av-pt__section">
+                          <th colSpan={7}>Conference Equipment</th>
+                        </tr>
+                        {enabledItems.map((item, idx) => (
+                          <tr key={item.id} className="av-pt__row">
+                            <td className="av-pt__num">{idx + 1}</td>
+                            <td className="av-pt__desc">{buildDescription(item)}</td>
+                            <td>Item</td>
+                            <td>{setup.days}</td>
+                            <td>{resolvePreviewAmount(item)}</td>
+                            <td>—</td>
+                            <td>0</td>
+                          </tr>
+                        ))}
+                      </>
+                    )}
+                    {supplies.length > 0 && (
+                      <>
+                        <tr className="av-pt__section">
+                          <th colSpan={7}>Conference Supplies and Materials</th>
+                        </tr>
+                        {supplies.map((s, idx) => (
+                          <tr key={s.id} className="av-pt__row">
+                            <td className="av-pt__num">{enabledItems.length + idx + 1}</td>
+                            <td className="av-pt__desc">{s.name}</td>
+                            <td>Item</td>
+                            <td>1</td>
+                            <td>{s.amount}</td>
+                            <td>—</td>
+                            <td>0</td>
+                          </tr>
+                        ))}
+                      </>
+                    )}
+                  </>
                 )}
               </tbody>
-              <tfoot>
-                <tr className="av-pt__footer">
-                  <td colSpan={6}>Equipment Total</td>
-                  <td>0</td>
-                </tr>
-                <tr className="av-pt__footer av-pt__footer--total">
-                  <td colSpan={6}>Total Sum (*Taxes and fees Included)</td>
-                  <td>0</td>
-                </tr>
-              </tfoot>
+              {hasContent && (
+                <tfoot>
+                  {enabledItems.length > 0 && (
+                    <tr className="av-pt__footer">
+                      <td colSpan={6}>Equipment Total</td>
+                      <td>0</td>
+                    </tr>
+                  )}
+                  {supplies.length > 0 && (
+                    <tr className="av-pt__footer">
+                      <td colSpan={6}>Supplies Total</td>
+                      <td>0</td>
+                    </tr>
+                  )}
+                  <tr className="av-pt__footer av-pt__footer--total">
+                    <td colSpan={6}>Total Sum (*Taxes and fees Included)</td>
+                    <td>0</td>
+                  </tr>
+                </tfoot>
+              )}
             </table>
           </div>
         </main>
