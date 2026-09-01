@@ -128,6 +128,36 @@ function colIndex_(map, colName) {
   return idx;
 }
 
+/**
+ * The spreadsheet's own "File → Settings → Time zone" — NOT
+ * Session.getScriptTimeZone(), which reflects this (standalone,
+ * openById-connected) script project's manifest timezone instead and can
+ * silently differ from the sheet's. Sheets auto-converts plain date-like
+ * strings ("2026-09-20", "September 2026") into real Date-typed cells using
+ * its own timezone; reading those cells back must use that SAME timezone
+ * or the calendar day drifts by one (see setCol_/setDateCol_ below, which
+ * avoid this entirely for new writes by keeping these columns plain text).
+ */
+function getSheetTz_() {
+  return getSpreadsheet_().getSpreadsheetTimeZone() || 'UTC';
+}
+
+/** Columns that must never be auto-converted to a Date-typed cell — see
+ * getSheetTz_ for why that conversion is what causes the day to drift. */
+var DATE_TEXT_COLS_ = {};
+DATE_TEXT_COLS_[CONFIG.COLS.DATES] = true;
+DATE_TEXT_COLS_[CONFIG.COLS.MONTH_GROUP] = true;
+DATE_TEXT_COLS_[CONFIG.COLS.START_DATE] = true;
+DATE_TEXT_COLS_[CONFIG.COLS.END_DATE] = true;
+
+/** Writes a cell, forcing plain-text format first for date-label columns so
+ * Sheets never silently reinterprets "2026-09-20" or "September 2026" as a
+ * real Date (which is what introduces the timezone-dependent day drift). */
+function setDateSafeCell_(range, colName, val) {
+  if (DATE_TEXT_COLS_[colName]) range.setNumberFormat('@');
+  range.setValue(val);
+}
+
 function rowToEvent_(row, rowNum, map) {
   function cell(name) {
     var c = colIndex_(map, name);
@@ -141,11 +171,9 @@ function rowToEvent_(row, rowNum, map) {
         return monthGroupFromDate_(d);
       }
       if (name === CONFIG.COLS.START_DATE || name === CONFIG.COLS.END_DATE) {
-        var tz = Session.getScriptTimeZone() || 'UTC';
-        return Utilities.formatDate(d, tz, 'yyyy-MM-dd');
+        return Utilities.formatDate(d, getSheetTz_(), 'yyyy-MM-dd');
       }
-      var tz2 = Session.getScriptTimeZone() || 'UTC';
-      return Utilities.formatDate(d, tz2, 'yyyy-MM-dd');
+      return Utilities.formatDate(d, getSheetTz_(), 'yyyy-MM-dd');
     }
     return String(v);
   }
@@ -257,6 +285,8 @@ function updateEventFields_(rowNumber, updates) {
     ownerEmail: CONFIG.COLS.OWNER_EMAIL,
     startDate: CONFIG.COLS.START_DATE,
     endDate: CONFIG.COLS.END_DATE,
+    monthGroup: CONFIG.COLS.MONTH_GROUP,
+    dates: CONFIG.COLS.DATES,
     driveFolderUrl: CONFIG.COLS.DRIVE_FOLDER_URL,
   };
 
@@ -265,7 +295,7 @@ function updateEventFields_(rowNumber, updates) {
     if (!colName) return;
     var col = colIndex_(map, colName);
     if (!col) return;
-    sheet.getRange(rowNumber, col).setValue(updates[key]);
+    setDateSafeCell_(sheet.getRange(rowNumber, col), colName, updates[key]);
   });
 
   var refreshed = listEvents_().events.filter(function (e) {
@@ -290,7 +320,7 @@ function createEvent_(payload) {
   function setCol(name, val) {
     var c = colIndex_(map, name);
     if (c && val !== undefined && val !== null && val !== '') {
-      sheet.getRange(row, c).setValue(val);
+      setDateSafeCell_(sheet.getRange(row, c), name, val);
     }
   }
 
@@ -357,12 +387,21 @@ function deleteEvent_(rowId, code, actorEmail) {
   return { ok: true, code: ev.code };
 }
 
+var MONTH_NAMES_ = ['January', 'February', 'March', 'April', 'May', 'June',
+                    'July', 'August', 'September', 'October', 'November', 'December'];
+
 function monthGroupFromDate_(startDate) {
+  // Plain "yyyy-MM-dd..." string (the normal case — what the web/iOS clients
+  // always send): read the calendar month directly off the text. Avoids
+  // ever routing a date-only string through a Date object, whose timezone
+  // handling is exactly what causes the day/month to drift (see getSheetTz_).
+  var m = String(startDate || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (m) return MONTH_NAMES_[Number(m[2]) - 1] + ' ' + m[1];
+
+  // Fallback: an actual Date object (e.g. a legacy Sheets-auto-converted cell).
   var d = parseDate_(startDate);
   if (!d) return '';
-  var months = ['January', 'February', 'March', 'April', 'May', 'June',
-                'July', 'August', 'September', 'October', 'November', 'December'];
-  return months[d.getMonth()] + ' ' + d.getFullYear();
+  return Utilities.formatDate(d, getSheetTz_(), 'MMMM yyyy');
 }
 
 function setLastReminder_(rowNumber, value) {
@@ -406,4 +445,120 @@ function isMissingVenue_(venue) {
 function isLemOpen_(lem) {
   var s = String(lem || '').trim().toLowerCase();
   return s !== 'closed';
+}
+
+var MONTH_INDEX_ = {
+  jan: 0, january: 0, feb: 1, february: 1, mar: 2, march: 2, apr: 3, april: 3,
+  may: 4, jun: 5, june: 5, jul: 6, july: 6, aug: 7, august: 7,
+  sep: 8, sept: 8, september: 8, oct: 9, october: 9, nov: 10, november: 10,
+  dec: 11, december: 11,
+};
+
+/**
+ * Parses the human "Dates" label (e.g. "15-09-2026 – 16-09-2026" or
+ * "Jun 10–11, 2026") back into ISO start/end — the same formats the web
+ * client's calendarDates.ts::parseDatesLabel understands. This text column
+ * is never auto-converted to a Date by Sheets (it doesn't look like one),
+ * so it's the reliable ground truth used by repairEventDates_ to fix rows
+ * whose Start Date/End Date/Month Group drifted from the old Date-cell bug.
+ */
+function parseDatesLabel_(dates, monthGroup) {
+  var cleaned = String(dates || '').replace(/[–—]/g, '-').trim();
+  if (!cleaned) return null;
+
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+
+  var displayRange = cleaned.match(/^(\d{1,2})-(\d{1,2})-(\d{4})\s*-\s*(\d{1,2})-(\d{1,2})-(\d{4})$/);
+  if (displayRange) {
+    return {
+      start: displayRange[3] + '-' + pad2(Number(displayRange[2])) + '-' + pad2(Number(displayRange[1])),
+      end: displayRange[6] + '-' + pad2(Number(displayRange[5])) + '-' + pad2(Number(displayRange[4])),
+    };
+  }
+
+  var displaySingle = cleaned.match(/^(\d{1,2})-(\d{1,2})-(\d{4})$/);
+  if (displaySingle) {
+    var iso = displaySingle[3] + '-' + pad2(Number(displaySingle[2])) + '-' + pad2(Number(displaySingle[1]));
+    return { start: iso, end: iso };
+  }
+
+  var yearFromGroup = (function () {
+    var m = String(monthGroup || '').match(/\b(20\d{2})\b/);
+    return m ? Number(m[1]) : null;
+  })();
+
+  var rangeMatch = cleaned.match(/^([A-Za-z]+)\s+(\d{1,2})\s*-\s*(\d{1,2})(?:,\s*(20\d{2}))?$/);
+  if (rangeMatch) {
+    var mi = MONTH_INDEX_[rangeMatch[1].trim().toLowerCase()];
+    if (mi == null) return null;
+    var year = rangeMatch[4] ? Number(rangeMatch[4]) : yearFromGroup;
+    if (!year) return null;
+    return {
+      start: year + '-' + pad2(mi + 1) + '-' + pad2(Number(rangeMatch[2])),
+      end: year + '-' + pad2(mi + 1) + '-' + pad2(Number(rangeMatch[3])),
+    };
+  }
+
+  var singleMatch = cleaned.match(/^([A-Za-z]+)\s+(\d{1,2})(?:,\s*(20\d{2}))?$/);
+  if (singleMatch) {
+    var mi2 = MONTH_INDEX_[singleMatch[1].trim().toLowerCase()];
+    if (mi2 == null) return null;
+    var year2 = singleMatch[3] ? Number(singleMatch[3]) : yearFromGroup;
+    if (!year2) return null;
+    var iso2 = year2 + '-' + pad2(mi2 + 1) + '-' + pad2(Number(singleMatch[2]));
+    return { start: iso2, end: iso2 };
+  }
+
+  return null;
+}
+
+/**
+ * Repairs Start Date/End Date/Month Group for events whose value drifted
+ * from the old Sheets-auto-Date-conversion timezone bug (fixed above by
+ * setDateSafeCell_/getSheetTz_) — re-derives them from the event's Dates
+ * text label, which is stored as plain text and was never affected.
+ * Pass apply=true to actually write fixes; otherwise this only reports
+ * what it would change.
+ */
+function repairEventDates_(apply) {
+  var sheet = getEventsSheet_();
+  var map = getHeaderMap_(sheet);
+  var lastRow = sheet.getLastRow();
+  var changed = [];
+  var checked = 0;
+
+  if (lastRow > 1) {
+    var data = sheet.getRange(2, 1, lastRow - 1, sheet.getLastColumn()).getValues();
+    for (var i = 0; i < data.length; i++) {
+      var ev = rowToEvent_(data[i], i + 2, map);
+      if (!ev) continue;
+      checked++;
+
+      var correct = parseDatesLabel_(ev.dates, ev.monthGroup);
+      if (!correct) continue; // can't determine ground truth — leave alone
+
+      var correctMonthGroup = monthGroupFromDate_(correct.start);
+      var needsFix =
+        correct.start !== ev.startDate ||
+        correct.end !== ev.endDate ||
+        (correctMonthGroup && correctMonthGroup !== ev.monthGroup);
+      if (!needsFix) continue;
+
+      changed.push({
+        code: ev.code,
+        before: { startDate: ev.startDate, endDate: ev.endDate, monthGroup: ev.monthGroup },
+        after: { startDate: correct.start, endDate: correct.end, monthGroup: correctMonthGroup },
+      });
+
+      if (apply) {
+        updateEventFields_(ev.rowNumber, {
+          startDate: correct.start,
+          endDate: correct.end,
+          monthGroup: correctMonthGroup,
+        });
+      }
+    }
+  }
+
+  return { checked: checked, changed: changed, applied: !!apply, sheetTimeZone: getSheetTz_() };
 }

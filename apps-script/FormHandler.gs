@@ -53,7 +53,7 @@ function appendEventFromForm_(code, updates) {
   function setCol(name, value) {
     var c = colIndex_(map, name);
     if (c && value !== undefined && value !== '') {
-      sheet.getRange(row, c).setValue(value);
+      setDateSafeCell_(sheet.getRange(row, c), name, value);
     }
   }
 

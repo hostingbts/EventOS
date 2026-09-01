@@ -106,6 +106,14 @@ function handleRequest_(e, method) {
       );
     }
 
+    // Maintenance: re-derive Start/End Date + Month Group from each event's
+    // (reliable, plain-text) Dates label. Admin-only; POST {apply:true} to
+    // actually write fixes, otherwise it only reports what would change.
+    if (action === 'eventDatesRepair' && method === 'POST') {
+      requireAdmin_(actorEmail);
+      return jsonResponse_(repairEventDates_(body.apply === true));
+    }
+
     if (action === 'workspace') {
       var eventCode = e.parameter.eventCode || body.eventCode || '';
       var eventRowId = e.parameter.eventRowId || body.eventRowId || '';
