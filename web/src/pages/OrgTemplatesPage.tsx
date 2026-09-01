@@ -65,6 +65,24 @@ async function copyToClipboard(text: string): Promise<void> {
   }
 }
 
+/** Magnifying-glass-with-an-eye "preview" icon. Uses currentColor so it
+ * picks up the button's own color (green, via .otf-btn--ghost). */
+function PreviewIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="2" />
+      <line x1="15.8" y1="15.8" x2="21.5" y2="21.5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+      <path
+        d="M3.8 10 C6 6.8 8.2 5.4 10 5.4 C11.8 5.4 14 6.8 16.2 10 C14 13.2 11.8 14.6 10 14.6 C8.2 14.6 6 13.2 3.8 10 Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <circle cx="10" cy="10" r="2.1" fill="currentColor" />
+    </svg>
+  );
+}
+
 function FileTypeBadge({ type }: { type: string }) {
   return (
     <span
@@ -321,7 +339,7 @@ export function OrgTemplatesPage() {
                         title={hasFile ? 'Preview' : 'View'}
                         aria-label={hasFile ? 'Preview' : 'View'}
                       >
-                        👁
+                        <PreviewIcon />
                       </button>
 
                       {hasFile && (
