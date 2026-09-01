@@ -65,6 +65,53 @@ async function copyToClipboard(text: string): Promise<void> {
   }
 }
 
+/** Magnifying-glass-with-an-eye "preview" icon. Uses currentColor so it
+ * picks up the button's own color (green, via .otf-btn--ghost). */
+function PreviewIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <circle cx="10" cy="10" r="8" stroke="currentColor" strokeWidth="2" />
+      <line x1="15.8" y1="15.8" x2="21.5" y2="21.5" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" />
+      <path
+        d="M3.8 10 C6 6.8 8.2 5.4 10 5.4 C11.8 5.4 14 6.8 16.2 10 C14 13.2 11.8 14.6 10 14.6 C8.2 14.6 6 13.2 3.8 10 Z"
+        stroke="currentColor"
+        strokeWidth="1.6"
+        strokeLinejoin="round"
+      />
+      <circle cx="10" cy="10" r="2.1" fill="currentColor" />
+    </svg>
+  );
+}
+
+/** Chain-link "copy shareable link" icon. Uses currentColor so it picks up
+ * the button's own color (green, via .otf-btn--ghost). */
+function LinkIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+      <path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1 1 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4 4 0 0 1-.128-1.287z" />
+      <path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243L6.586 4.672Z" />
+    </svg>
+  );
+}
+
+/** Repeat/replace icon: two straight bars with chevron arrowheads
+ * forming a loop. Uses currentColor so it picks up the button's own
+ * color (green). */
+function ReplaceIcon() {
+  return (
+    <svg
+      width="16" height="16" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <polyline points="17 1 21 5 17 9" />
+      <path d="M3 11V9a4 4 0 0 1 4-4h14" />
+      <polyline points="7 23 3 19 7 15" />
+      <path d="M21 13v2a4 4 0 0 1-4 4H3" />
+    </svg>
+  );
+}
+
 function FileTypeBadge({ type }: { type: string }) {
   return (
     <span
@@ -315,32 +362,35 @@ export function OrgTemplatesPage() {
                     <div className="otf-card__footer">
                       <button
                         type="button"
-                        className="otf-btn otf-btn--sm otf-btn--ghost"
+                        className="otf-btn otf-btn--sm otf-btn--icon otf-btn--ghost"
                         onClick={() => setPreview(f)}
                         disabled={uploading === f.id}
+                        title={hasFile ? 'Preview' : 'View'}
+                        aria-label={hasFile ? 'Preview' : 'View'}
                       >
-                        {hasFile ? 'Preview' : 'View'}
+                        <PreviewIcon />
                       </button>
 
                       {hasFile && (
                         <button
                           type="button"
-                          className="otf-btn otf-btn--sm otf-btn--icon otf-btn--secondary"
+                          className="otf-btn otf-btn--sm otf-btn--icon otf-btn--ghost"
                           onClick={() => handleCopyLink(f)}
                           title={copiedId === f.id ? 'Copied!' : 'Copy a shareable link to this file'}
                           aria-label="Copy shareable link"
                         >
-                          {copiedId === f.id ? '✓' : '🔗'}
+                          {copiedId === f.id ? '✓' : <LinkIcon />}
                         </button>
                       )}
 
                       {isAdmin && (
                         <>
                           <label
-                            className={`otf-btn otf-btn--sm otf-btn--secondary${uploading === f.id ? ' loading' : ''}`}
-                            title="Upload file"
+                            className={`otf-btn otf-btn--sm otf-btn--icon otf-btn--ghost${uploading === f.id ? ' loading' : ''}`}
+                            title={hasFile ? 'Replace file' : 'Upload file'}
+                            aria-label={hasFile ? 'Replace file' : 'Upload file'}
                           >
-                            {uploading === f.id ? '…' : hasFile ? 'Replace' : 'Upload'}
+                            {uploading === f.id ? '…' : <ReplaceIcon />}
                             <input
                               type="file"
                               hidden
