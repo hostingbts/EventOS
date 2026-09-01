@@ -1,8 +1,13 @@
 import SwiftUI
 
+private let customSupplyOption = "Other…"
+
 struct AVEquipmentView: View {
     @EnvironmentObject private var session: SessionStore
     @StateObject private var vm = AVEquipmentViewModel()
+    @State private var newSupplyName = avSupplyCatalog[0]
+    @State private var newSupplyCustomName = ""
+    @State private var newSupplyAmount = 1
 
     var body: some View {
         ScrollView {
@@ -17,6 +22,8 @@ struct AVEquipmentView: View {
                         }
                     }
                 }
+
+                suppliesCard
 
                 if let error = vm.error {
                     Text(error).foregroundStyle(Theme.statusRisk).font(.footnote)
@@ -39,7 +46,7 @@ struct AVEquipmentView: View {
                     }
                 }
                 .buttonStyle(StakePrimaryButtonStyle())
-                .disabled(vm.saving)
+                .disabled(vm.saving || !vm.hasContent)
             }
             .padding(16)
         }
@@ -78,6 +85,68 @@ struct AVEquipmentView: View {
                 .foregroundStyle(Theme.textPrimary)
                 .clipShape(RoundedRectangle(cornerRadius: Theme.cornerSmall, style: .continuous))
         }
+    }
+
+    private var suppliesCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            SectionHeaderRow(icon: "shippingbox.fill", title: "Supplies & Materials")
+            Text("Pick an item, set the amount, and add it. Supplies are always listed as 1 day.")
+                .font(.caption).foregroundStyle(Theme.textSecondary)
+
+            HStack(spacing: 10) {
+                Picker("Item", selection: $newSupplyName) {
+                    ForEach(avSupplyCatalog, id: \.self) { Text($0).tag($0) }
+                    Text(customSupplyOption).tag(customSupplyOption)
+                }
+                .pickerStyle(.menu)
+                .tint(Theme.green)
+
+                Stepper("Amt: \(newSupplyAmount)", value: $newSupplyAmount, in: 1...2000, step: 5)
+            }
+
+            if newSupplyName == customSupplyOption {
+                TextField("Item name", text: $newSupplyCustomName)
+                    .textFieldStyle(.plain).padding(10)
+                    .background(Theme.cardAlt)
+                    .foregroundStyle(Theme.textPrimary)
+                    .clipShape(RoundedRectangle(cornerRadius: Theme.cornerSmall, style: .continuous))
+            }
+
+            Button {
+                let name = newSupplyName == customSupplyOption ? newSupplyCustomName : newSupplyName
+                vm.addSupply(name: name, amount: newSupplyAmount)
+                newSupplyCustomName = ""
+                newSupplyAmount = 1
+            } label: {
+                Label("Add", systemImage: "plus.circle.fill").font(.subheadline.bold())
+            }
+            .disabled(newSupplyName == customSupplyOption && newSupplyCustomName.trimmingCharacters(in: .whitespaces).isEmpty)
+            .foregroundStyle(Theme.green)
+
+            if !vm.supplies.isEmpty {
+                VStack(spacing: 8) {
+                    ForEach(Array(vm.supplies.enumerated()), id: \.element.id) { index, supply in
+                        HStack(spacing: 10) {
+                            Text("\(index + 1)").font(.caption.bold()).foregroundStyle(Theme.textSecondary)
+                                .frame(width: 18, alignment: .trailing)
+                            Text(supply.name).font(.subheadline).foregroundStyle(Theme.textPrimary)
+                            Spacer()
+                            Text("×\(supply.amount)").font(.caption.bold()).foregroundStyle(Theme.textSecondary)
+                            Button {
+                                vm.removeSupply(supply.id)
+                            } label: {
+                                Image(systemName: "xmark.circle.fill").foregroundStyle(Theme.textTertiary)
+                            }
+                        }
+                        .padding(10)
+                        .background(Theme.cardAlt)
+                        .clipShape(RoundedRectangle(cornerRadius: Theme.cornerSmall, style: .continuous))
+                    }
+                }
+            }
+        }
+        .cardStyle()
+        .foregroundStyle(Theme.textPrimary)
     }
 
     @ViewBuilder

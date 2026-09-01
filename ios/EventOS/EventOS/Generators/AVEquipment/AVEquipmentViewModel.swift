@@ -64,6 +64,17 @@ enum AVSetupStyle: String, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
+/// Named starter items for the "Supplies & Materials" list (briefing folders,
+/// table tent cards, etc). Always listed as 1 day regardless of the AV
+/// equipment "days" setting, since supplies aren't rented per-day.
+let avSupplyCatalog = ["Briefing Folders", "Table Tent Cards", "Pen and Notepads", "Name Badges"]
+
+struct AVSupplyItem: Identifiable, Equatable {
+    let id = UUID()
+    var name: String
+    var amount: Int
+}
+
 @MainActor
 final class AVEquipmentViewModel: ObservableObject {
     @Published var eventCode = ""
@@ -73,6 +84,7 @@ final class AVEquipmentViewModel: ObservableObject {
     @Published var pax = 50
     @Published var days = 1
     @Published var items: [AVItemState] = avItemDefinitions.map { AVItemState(definition: $0) }
+    @Published var supplies: [AVSupplyItem] = []
 
     @Published var saving = false
     @Published var error: String?
@@ -80,6 +92,17 @@ final class AVEquipmentViewModel: ObservableObject {
     @Published var savedFileId: String?
 
     var enabledItems: [AVItemState] { items.filter { $0.enabled } }
+    var hasContent: Bool { !enabledItems.isEmpty || !supplies.isEmpty }
+
+    func addSupply(name: String, amount: Int) {
+        let trimmed = name.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        supplies.append(AVSupplyItem(name: trimmed, amount: max(amount, 1)))
+    }
+
+    func removeSupply(_ id: AVSupplyItem.ID) {
+        supplies.removeAll { $0.id == id }
+    }
 
     func binding(for id: String) -> Int {
         items.firstIndex { $0.id == id } ?? 0
@@ -98,19 +121,38 @@ final class AVEquipmentViewModel: ObservableObject {
                 .text("No.", style: "hdr"), .text("Name of the Service and Brief Description", style: "hdr"),
                 .text("Day(s)", style: "hdr"), .text("Amount", style: "hdr"),
             ]),
-            SpreadsheetRow(cells: [.text("Conference Equipment", style: "section")]),
         ]
 
-        for (index, item) in enabledItems.enumerated() {
-            let amount = item.definition.kind == .interpretation ? item.receivers
-                : item.definition.kind == .wirelessMics ? (item.lapel + item.handheld)
-                : item.amount
-            rows.append(SpreadsheetRow(cells: [
-                .number(Double(index + 1), style: "cell"),
-                .text(item.descriptionText, style: "desc"),
-                .number(Double(days), style: "cell"),
-                .number(Double(amount), style: "cell"),
-            ]))
+        var num = 0
+
+        if !enabledItems.isEmpty {
+            rows.append(SpreadsheetRow(cells: [.text("Conference Equipment", style: "section")]))
+            for item in enabledItems {
+                num += 1
+                let amount = item.definition.kind == .interpretation ? item.receivers
+                    : item.definition.kind == .wirelessMics ? (item.lapel + item.handheld)
+                    : item.amount
+                rows.append(SpreadsheetRow(cells: [
+                    .number(Double(num), style: "cell"),
+                    .text(item.descriptionText, style: "desc"),
+                    .number(Double(days), style: "cell"),
+                    .number(Double(amount), style: "cell"),
+                ]))
+            }
+        }
+
+        // Supplies are always listed as 1 day, regardless of the equipment "days" setting.
+        if !supplies.isEmpty {
+            rows.append(SpreadsheetRow(cells: [.text("Conference Supplies and Materials", style: "section")]))
+            for supply in supplies {
+                num += 1
+                rows.append(SpreadsheetRow(cells: [
+                    .number(Double(num), style: "cell"),
+                    .text(supply.name, style: "desc"),
+                    .number(1, style: "cell"),
+                    .number(Double(supply.amount), style: "cell"),
+                ]))
+            }
         }
 
         let sheetName = String((eventDate.isEmpty ? "AV Equipment" : eventDate).prefix(31))
@@ -124,8 +166,8 @@ final class AVEquipmentViewModel: ObservableObject {
             error = "Enter an event code first."
             return
         }
-        guard !enabledItems.isEmpty else {
-            error = "Enable at least one equipment item first."
+        guard hasContent else {
+            error = "Enable at least one equipment item or add a supply first."
             return
         }
         saving = true
