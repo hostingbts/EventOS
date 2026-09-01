@@ -86,4 +86,12 @@ struct OrgTemplateFile: Codable, Identifiable, Equatable {
         guard let id = driveFileId, !id.isEmpty else { return nil }
         return URL(string: "https://drive.google.com/uc?export=download&id=\(id)")
     }
+
+    /// The normal Drive "view" link — safe to hand to anyone, since these
+    /// files are already shared org-wide with no login required.
+    var shareURL: URL? {
+        if let driveUrl, !driveUrl.isEmpty { return URL(string: driveUrl) }
+        guard let id = driveFileId, !id.isEmpty else { return nil }
+        return URL(string: "https://drive.google.com/file/d/\(id)/view?usp=sharing")
+    }
 }

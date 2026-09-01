@@ -1,5 +1,6 @@
 import SwiftUI
 import UniformTypeIdentifiers
+import UIKit
 
 struct OrgTemplatesView: View {
     @EnvironmentObject private var session: SessionStore
@@ -7,6 +8,7 @@ struct OrgTemplatesView: View {
     @State private var uploadTargetId: String?
     @State private var showAddSheet = false
     @State private var deleteTarget: OrgTemplateFile?
+    @State private var copiedId: String?
 
     private var isAdmin: Bool { session.user?.isAdmin ?? false }
 
@@ -102,6 +104,15 @@ struct OrgTemplatesView: View {
         }
     }
 
+    private func copyShareLink(_ file: OrgTemplateFile) {
+        guard let url = file.shareURL else { return }
+        UIPasteboard.general.string = url.absoluteString
+        copiedId = file.id
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+            if copiedId == file.id { copiedId = nil }
+        }
+    }
+
     private func handleImport(_ result: Result<[URL], Error>, then: (String, String, Data) -> Void) {
         guard case .success(let urls) = result, let url = urls.first else { return }
         let accessed = url.startAccessingSecurityScopedResource()
@@ -135,6 +146,14 @@ struct OrgTemplatesView: View {
                 if let url = file.hasFile ? (file.downloadURL ?? file.driveUrl.flatMap(URL.init(string:))) : nil {
                     Link(destination: url) {
                         Label("View", systemImage: "arrow.down.circle").font(.caption.weight(.semibold))
+                    }
+                }
+                if file.hasFile {
+                    Button {
+                        copyShareLink(file)
+                    } label: {
+                        Label(copiedId == file.id ? "Copied!" : "Share", systemImage: copiedId == file.id ? "checkmark.circle.fill" : "link")
+                            .font(.caption.weight(.semibold))
                     }
                 }
                 if isAdmin {
