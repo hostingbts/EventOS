@@ -315,11 +315,13 @@ export function OrgTemplatesPage() {
                     <div className="otf-card__footer">
                       <button
                         type="button"
-                        className="otf-btn otf-btn--sm otf-btn--ghost"
+                        className="otf-btn otf-btn--sm otf-btn--icon otf-btn--ghost"
                         onClick={() => setPreview(f)}
                         disabled={uploading === f.id}
+                        title={hasFile ? 'Preview' : 'View'}
+                        aria-label={hasFile ? 'Preview' : 'View'}
                       >
-                        {hasFile ? 'Preview' : 'View'}
+                        👁
                       </button>
 
                       {hasFile && (
