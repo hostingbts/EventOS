@@ -30,16 +30,8 @@ struct LoginView: View {
     }
 
     private var brand: some View {
-        VStack(spacing: 12) {
-            EventOSIcon(reversed: true, size: 64)
-            (
-                Text("Event")
-                    + Text("OS").foregroundColor(EventOSBrand.live)
-            )
-            .font(.system(size: 30, weight: .bold))
-            .foregroundStyle(Theme.textPrimary)
-        }
-        .padding(.top, 40)
+        EventOSLogoView(size: 56)
+            .padding(.top, 40)
     }
 
     private var errorText: some View {

@@ -6,9 +6,7 @@ struct RootView: View {
     var body: some View {
         Group {
             if !session.isReady {
-                ProgressView().tint(Theme.green)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .background(Theme.bg)
+                EventOSSplashView()
             } else if session.user != nil {
                 RootTabView()
             } else {
