@@ -20,6 +20,26 @@ function RefreshIcon() {
   );
 }
 
+/** Calendar-with-a-plus "new event" icon. Uses currentColor so it picks up
+ * the button's own color (white, on .dashboard__new's green fill). */
+function NewEventIcon() {
+  return (
+    <svg
+      width="20" height="20" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <line x1="7" y1="2" x2="7" y2="6" />
+      <line x1="12" y1="2" x2="12" y2="6" />
+      <line x1="17" y1="2" x2="17" y2="6" />
+      <rect x="4" y="4.5" width="16" height="16.5" rx="2" />
+      <line x1="4" y1="9.5" x2="20" y2="9.5" />
+      <line x1="12" y1="12.5" x2="12" y2="18" />
+      <line x1="9.25" y1="15.25" x2="14.75" y2="15.25" />
+    </svg>
+  );
+}
+
 // ─── Date helpers ─────────────────────────────────────────────────────────────
 
 const COMPLETED_THRESHOLD = 15; // days past endDate → completed
@@ -502,8 +522,14 @@ export function DashboardPage() {
             <RefreshIcon />
           </button>
           {user && (
-            <button type="button" className="dashboard__new" onClick={() => setShowNewProject(true)}>
-              + New event
+            <button
+              type="button"
+              className="dashboard__new dashboard__new--icon"
+              onClick={() => setShowNewProject(true)}
+              title="New event"
+              aria-label="New event"
+            >
+              <NewEventIcon />
             </button>
           )}
         </div>
