@@ -3,8 +3,7 @@ import { useUser } from '../context/UserContext';
 import { useMockData } from '../api/client';
 import { ROLE_COLORS, ROLE_LABELS } from '../utils/roleStore';
 import { FloatingCalendarButton } from '../components/FloatingCalendarButton';
-import { EventOSWordmark } from '../components/EventOSWordmark';
-import { EVENTOS_ICON_REVERSED } from '../utils/brand';
+import { EventOSLogo } from '../brand/EventOSLogo';
 import './AppLayout.css';
 
 /** SVG icons — inline so there's no extra dependency */
@@ -117,15 +116,11 @@ export function AppLayout() {
       <aside className="layout__sidebar" aria-label="Main navigation">
         {/* Brand */}
         <div className="layout__brand">
-          <img
-            src={EVENTOS_ICON_REVERSED}
-            alt="EventOS"
-            width={38}
-            height={38}
-            className="layout__logo-img layout__logo-img--icon"
-          />
+          <div className="layout__logo-img layout__logo-img--icon">
+            <EventOSLogo size={2.6} wordmark={false} />
+          </div>
           <div className="layout__logo-img--full">
-            <EventOSWordmark reversed iconSize={26} />
+            <EventOSLogo size={3.5} />
           </div>
         </div>
 
