@@ -8,6 +8,7 @@ import {
 } from '../utils/authStore';
 import { getMemberByEmail, upsertMember } from '../utils/roleStore';
 import { EventOSWordmark } from './EventOSWordmark';
+import { EventOSLogo } from '../brand/EventOSLogo';
 import './JoinTeamModal.css';
 
 type Step = 'email' | 'password' | 'not_found' | 'register';
@@ -143,7 +144,7 @@ export function JoinTeamModal() {
         {/* Logo + wordmark — light/dark variants, toggled by prefers-color-scheme */}
         <div className="login-brand">
           <EventOSWordmark iconSize={40} textSize="1.7rem" className="login-logo login-logo--light" />
-          <EventOSWordmark reversed iconSize={40} textSize="1.7rem" className="login-logo login-logo--dark" />
+          <EventOSLogo size={3} className="login-logo login-logo--dark" />
         </div>
 
         {/* ── Step: Email ── */}

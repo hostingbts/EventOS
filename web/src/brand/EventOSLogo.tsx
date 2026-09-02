@@ -5,10 +5,16 @@ interface EventOSLogoProps {
   size?: number;
   wordmark?: boolean;
   loop?: boolean;
+  className?: string;
 }
 
-export function EventOSLogo({ size = 20, wordmark = true, loop = false }: EventOSLogoProps) {
-  const cls = ['eventos-logo', wordmark ? '' : 'eventos-logo--icon', loop ? 'eventos-logo--loop' : '']
+export function EventOSLogo({ size = 20, wordmark = true, loop = false, className }: EventOSLogoProps) {
+  const cls = [
+    'eventos-logo',
+    wordmark ? '' : 'eventos-logo--icon',
+    loop ? 'eventos-logo--loop' : '',
+    className || '',
+  ]
     .filter(Boolean)
     .join(' ');
   return (
