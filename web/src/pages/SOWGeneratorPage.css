@@ -277,7 +277,22 @@
 }
 
 .sow-textarea { resize: vertical; min-height: 80px; font-family: inherit; }
-.sow-select   { cursor: pointer; }
+
+.sow-select {
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  padding-right: 2.4rem;
+  background-color: white;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1L5 5L9 1' stroke='%230d9488' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.9rem center;
+}
+
+.sow-select:hover {
+  border-color: var(--primary, #0d9488);
+}
 
 .sow-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.65rem; }
 .sow-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.65rem; }
