@@ -74,14 +74,13 @@
   transition: opacity 0.18s;
 }
 
-/* Full wordmark logo — hidden when collapsed, visible on hover */
+/* Full wordmark (icon + live "EventOS" text) — hidden when collapsed,
+ * visible on hover. White text since the sidebar is always dark. */
 .layout__logo-img--full {
   display: none;
-  width: auto;
-  max-width: 152px;
-  height: 40px;
-  object-fit: contain;
   opacity: 0;
+  color: #ffffff;
+  font-size: 1.05rem;
   transition: opacity 0.18s ease 0.08s;
   pointer-events: none;
 }
@@ -91,7 +90,7 @@
 }
 
 .layout__sidebar:hover .layout__logo-img--full {
-  display: block;
+  display: flex;
   opacity: 1;
   pointer-events: auto;
 }
