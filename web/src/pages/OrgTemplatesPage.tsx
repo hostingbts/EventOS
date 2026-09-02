@@ -112,6 +112,22 @@ function ReplaceIcon() {
   );
 }
 
+/** Folder-with-a-plus "add file" icon. Uses currentColor so it picks up
+ * the button's own color (white, on otf-btn--primary's green fill). */
+function AddFileIcon() {
+  return (
+    <svg
+      width="18" height="18" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M3 6.5a2 2 0 0 1 2-2h5.5l2.5 2.5H19a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <line x1="12" y1="11" x2="12" y2="16" />
+      <line x1="9.5" y1="13.5" x2="14.5" y2="13.5" />
+    </svg>
+  );
+}
+
 function FileTypeBadge({ type }: { type: string }) {
   return (
     <span
@@ -290,10 +306,12 @@ export function OrgTemplatesPage() {
         {isAdmin && (
           <button
             type="button"
-            className="otf-btn otf-btn--primary"
+            className="otf-btn otf-btn--primary otf-btn--icon-lg"
             onClick={() => setAddModal(true)}
+            title="Add file"
+            aria-label="Add file"
           >
-            + Add file
+            <AddFileIcon />
           </button>
         )}
       </header>
@@ -420,7 +438,7 @@ export function OrgTemplatesPage() {
       {files.length === 0 && (
         <div className="otf-empty">
           <p>No template files yet.</p>
-          {isAdmin && <p>Click <strong>+ Add file</strong> to upload the first one.</p>}
+          {isAdmin && <p>Click the folder icon above to upload the first one.</p>}
         </div>
       )}
 

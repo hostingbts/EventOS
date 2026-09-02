@@ -241,6 +241,12 @@
   min-width: 1.9rem;
 }
 
+.otf-btn--icon-lg {
+  padding: 0.55rem;
+  width: 2.6rem;
+  height: 2.6rem;
+}
+
 .otf-btn.loading {
   opacity: 0.6;
   pointer-events: none;
