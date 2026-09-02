@@ -30,16 +30,14 @@ struct LoginView: View {
     }
 
     private var brand: some View {
-        VStack(spacing: 10) {
-            ZStack {
-                Circle().fill(Theme.headerGradient).frame(width: 76, height: 76)
-                Image(systemName: "checkmark.seal.fill")
-                    .font(.system(size: 34))
-                    .foregroundStyle(Theme.green)
-            }
-            Text("EventOS")
-                .font(.largeTitle.bold())
-                .foregroundStyle(Theme.textPrimary)
+        VStack(spacing: 12) {
+            EventOSIcon(reversed: true, size: 64)
+            (
+                Text("Event")
+                    + Text("OS").foregroundColor(EventOSBrand.live)
+            )
+            .font(.system(size: 30, weight: .bold))
+            .foregroundStyle(Theme.textPrimary)
         }
         .padding(.top, 40)
     }
