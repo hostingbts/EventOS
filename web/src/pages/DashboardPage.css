@@ -74,6 +74,15 @@
   background: var(--primary-hover);
 }
 
+.dashboard__new--icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.375rem;
+  height: 2.375rem;
+  padding: 0;
+}
+
 .dashboard__empty {
   text-align: center;
   padding: 3rem 1.5rem;
