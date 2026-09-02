@@ -34,10 +34,12 @@
 }
 
 .login-logo {
-  height: 56px;
-  width: auto;
-  max-width: min(100%, 280px);
-  object-fit: contain;
+  color: #0f172a; /* "Event" text color in light mode; "OS" stays emerald */
+}
+
+/* Only one variant renders at a time, chosen by prefers-color-scheme below */
+.login-logo--dark {
+  display: none;
 }
 
 /* ── Typography ──────────────────────────────────────────────────────────── */
@@ -238,6 +240,9 @@
     background: #1e293b;
     border-color: rgba(255,255,255,.07);
   }
+
+  .login-logo--light { display: none; }
+  .login-logo--dark { display: flex; color: #f8fafc; }
 
   .login-title { color: #f8fafc; }
 

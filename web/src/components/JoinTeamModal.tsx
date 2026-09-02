@@ -7,7 +7,7 @@ import {
   verifyPassword,
 } from '../utils/authStore';
 import { getMemberByEmail, upsertMember } from '../utils/roleStore';
-import { LOGO_WORDMARK } from '../utils/brand';
+import { EventOSWordmark } from './EventOSWordmark';
 import './JoinTeamModal.css';
 
 type Step = 'email' | 'password' | 'not_found' | 'register';
@@ -140,9 +140,10 @@ export function JoinTeamModal() {
     <div className="login-overlay" role="dialog" aria-modal="true" aria-label="Sign in">
       <div className="login-card">
 
-        {/* Logo + wordmark */}
+        {/* Logo + wordmark — light/dark variants, toggled by prefers-color-scheme */}
         <div className="login-brand">
-          <img src={LOGO_WORDMARK} alt="EventOS" className="login-logo" />
+          <EventOSWordmark iconSize={40} textSize="1.7rem" className="login-logo login-logo--light" />
+          <EventOSWordmark reversed iconSize={40} textSize="1.7rem" className="login-logo login-logo--dark" />
         </div>
 
         {/* ── Step: Email ── */}
