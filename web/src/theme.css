@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Archivo:wght@700&display=swap');
 
 :root {
   /* Core palette — slate + teal */
@@ -93,4 +93,30 @@ select:focus-visible,
 textarea:focus-visible {
   outline: 2px solid var(--primary);
   outline-offset: 2px;
+}
+
+/* ─── EventOS wordmark ──────────────────────────────────────────────────────
+ * Icon + live text (not a flattened logo image), so it stays crisp and the
+ * text color can follow whatever background it's placed on. "OS" is always
+ * emerald; the rest of the word inherits color from its container. */
+.eventos-wordmark {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.eventos-wordmark__icon {
+  display: block;
+  flex-shrink: 0;
+}
+
+.eventos-wordmark__text {
+  font-family: 'Archivo', 'Plus Jakarta Sans', system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.eventos-wordmark__os {
+  color: #10b981;
 }
